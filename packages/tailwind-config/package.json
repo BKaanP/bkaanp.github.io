@@ -1,0 +1,9 @@
+{
+  "name": "@bkaanp/tailwind-config",
+  "version": "0.0.0",
+  "private": true,
+  "files": ["theme.css"],
+  "exports": {
+    "./theme.css": "./theme.css"
+  }
+}

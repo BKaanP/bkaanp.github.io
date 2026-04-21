@@ -1,0 +1,70 @@
+---
+import '../styles/global.css';
+
+const projects = [
+  {
+    title: 'Semantic Image Search',
+    description: 'CLIP-powered image search running entirely in your browser. No server, no uploads.',
+    tech: ['transformers.js', 'React', 'IndexedDB'],
+    href: '/image-search/',
+  },
+  {
+    title: 'Local-First RAG',
+    description: 'Chat with your PDFs. Embeddings and retrieval run client-side; you bring the API key.',
+    tech: ['RAG', 'transformers.js', 'pdf.js'],
+    href: '/rag/',
+  },
+  {
+    title: 'MCP Client',
+    description: 'Connect to Model Context Protocol servers from the browser. Watch tool calls happen live.',
+    tech: ['MCP', 'Anthropic SDK', 'TypeScript'],
+    href: '/mcp-client/',
+  },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Batuhan-Kaan Piskin — AI-integrated frontends</title>
+  </head>
+  <body class="min-h-screen">
+    <main class="max-w-3xl mx-auto px-6 py-24">
+      <header class="mb-20">
+        <h1 class="text-4xl font-semibold tracking-tight mb-4">Batuhan-Kaan Piskin</h1>
+        <p class="text-lg text-[var(--color-text-muted)] leading-relaxed">
+          Frontend engineer working at the intersection of AI and product. Based in Berlin.
+          Previously built an Azure-based RAG chatbot at Sparkassen Rating & Risikosysteme.
+        </p>
+      </header>
+
+      <section class="mb-20">
+        <h2 class="text-sm font-mono uppercase tracking-widest text-[var(--color-text-muted)] mb-6">Projects</h2>
+        <ul class="space-y-4">
+          {projects.map((p) => (
+            <li>
+              <a href={p.href} class="block p-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] transition-colors">
+                <div class="flex items-baseline justify-between gap-4 mb-2">
+                  <h3 class="text-lg font-medium">{p.title}</h3>
+                  <span class="text-xs font-mono text-[var(--color-text-muted)]">in progress</span>
+                </div>
+                <p class="text-[var(--color-text-muted)] mb-4 leading-relaxed">{p.description}</p>
+                <div class="flex flex-wrap gap-2">
+                  {p.tech.map((t) => (
+                    <span class="text-xs font-mono px-2 py-1 rounded bg-[var(--color-bg)] border border-[var(--color-border)]">{t}</span>
+                  ))}
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <footer class="text-sm text-[var(--color-text-muted)]">
+        <a href="https://github.com/bkaanp" class="hover:text-[var(--color-accent)] transition-colors">GitHub</a>
+      </footer>
+    </main>
+  </body>
+</html>

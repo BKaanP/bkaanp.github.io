@@ -1,0 +1,9 @@
+@import 'tailwindcss';
+@import '@bkaanp/tailwind-config/theme.css';
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

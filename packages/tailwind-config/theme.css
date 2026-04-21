@@ -1,0 +1,16 @@
+@theme {
+  --color-bg: #0a0a0a;
+  --color-surface: #151515;
+  --color-border: #262626;
+  --color-text: #fafafa;
+  --color-text-muted: #a3a3a3;
+  --color-accent: #f59e0b;
+  --color-accent-hover: #d97706;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+}

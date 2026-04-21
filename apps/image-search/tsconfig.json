@@ -1,0 +1,7 @@
+{
+  "extends": "@bkaanp/tsconfig/react.json",
+  "include": ["src"],
+  "compilerOptions": {
+    "types": ["vite/client"]
+  }
+}
