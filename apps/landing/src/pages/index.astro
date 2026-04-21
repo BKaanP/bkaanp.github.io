@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-
+ 
 const projects = [
   {
     title: 'Semantic Image Search',
@@ -21,14 +21,32 @@ const projects = [
     href: '/mcp-client/',
   },
 ];
+ 
+const siteUrl = 'https://bkaanp.github.io';
+const title = 'Batuhan-Kaan Piskin — AI-integrated frontends';
+const description = 'Portfolio of small, focused experiments at the intersection of AI and frontend engineering. Berlin-based.';
 ---
-
+ 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Batuhan-Kaan Piskin — AI-integrated frontends</title>
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={siteUrl} />
+ 
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={siteUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content="en_US" />
+ 
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+ 
+    <meta name="theme-color" content="#0a0a0a" />
   </head>
   <body class="min-h-screen">
     <main class="max-w-3xl mx-auto px-6 py-24">
@@ -39,7 +57,7 @@ const projects = [
           Previously built an Azure-based RAG chatbot at Sparkassen Rating & Risikosysteme.
         </p>
       </header>
-
+ 
       <section class="mb-20">
         <h2 class="text-sm font-mono uppercase tracking-widest text-[var(--color-text-muted)] mb-6">Projects</h2>
         <ul class="space-y-4">
@@ -61,7 +79,7 @@ const projects = [
           ))}
         </ul>
       </section>
-
+ 
       <footer class="text-sm text-[var(--color-text-muted)]">
         <a href="https://github.com/bkaanp" class="hover:text-[var(--color-accent)] transition-colors">GitHub</a>
       </footer>
