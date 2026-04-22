@@ -1,21 +1,24 @@
 ---
 import '../styles/global.css';
 
-type Status = 'live' | 'building' | 'planned';
+type Status = 'live' | 'building' | 'next';
 
 const statusStyles: Record<Status, string> = {
   live: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
   building: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  planned: 'bg-red-500/10 text-red-400 border-red-500/30',
+  next: 'bg-red-500/10 text-red-400 border-red-500/30',
 };
 
-const projects: Array<{
+interface Project {
   title: string;
   description: string;
   tech: string[];
   href: string;
   status: Status;
-}> = [
+  disabled?: boolean;
+}
+
+const projects: Project[] = [
   {
     title: 'Semantic Image Search',
     description: 'CLIP-powered image search running entirely in your browser. No server, no uploads.',
@@ -36,6 +39,22 @@ const projects: Array<{
     tech: ['MCP', 'Anthropic SDK', 'JSON-RPC'],
     href: '/mcp-client/',
     status: 'live',
+  },
+  {
+    title: 'Managed CRM Stack',
+    description: 'The MCP CRM server, lifted out of the browser and shipped as a real backend. Docker Compose for local dev, Kubernetes manifests, end-to-end tests.',
+    tech: ['Docker', 'Kubernetes', 'Postgres', 'FastAPI', 'MCP'],
+    href: '#',
+    status: 'building',
+    disabled: true,
+  },
+  {
+    title: 'Novexa Global',
+    description: 'Custom Next.js storefront for a business selling capsule homes. Multi-language with AI-generated product descriptions. Additionally AI focused workflow optimization',
+    tech: ['Next.js', 'Postgres', 'Claude API', 'Vercel'],
+    href: '#',
+    status: 'next',
+    disabled: true,
   },
 ];
 
@@ -91,9 +110,13 @@ const description = 'Portfolio of small, focused experiments at the intersection
       <section class="mb-16">
         <h2 class="text-sm font-mono uppercase tracking-widest text-[var(--color-text-muted)] mb-6">Projects</h2>
         <ul class="space-y-4">
-          {projects.map((p) => (
-            <li>
-              <a href={p.href} class="block p-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] transition-colors">
+          {projects.map((p) => {
+            const cardClass = 'block p-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-colors';
+            const activeClass = `${cardClass} hover:border-[var(--color-accent)]`;
+            const nextClass = `${cardClass} opacity-70 cursor-default`;
+
+            const inner = (
+              <>
                 <div class="flex items-baseline justify-between gap-4 mb-2">
                   <h3 class="text-lg font-medium">{p.title}</h3>
                   <span class={`text-xs font-mono px-2 py-0.5 rounded border ${statusStyles[p.status]}`}>
@@ -106,9 +129,23 @@ const description = 'Portfolio of small, focused experiments at the intersection
                     <span class="text-xs font-mono px-2 py-1 rounded bg-[var(--color-bg)] border border-[var(--color-border)]">{t}</span>
                   ))}
                 </div>
-              </a>
-            </li>
-          ))}
+              </>
+            );
+
+            return (
+              <li>
+                {p.disabled ? (
+                  <div class={nextClass} aria-disabled="true">
+                    {inner}
+                  </div>
+                ) : (
+                  <a href={p.href} class={activeClass}>
+                    {inner}
+                  </a>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
