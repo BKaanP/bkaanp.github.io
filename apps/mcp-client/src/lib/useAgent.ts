@@ -3,11 +3,6 @@ import { runAgent, SYSTEM_PROMPT, type AgentEvent } from './agent'
 import type { McpClient } from './mcp/client'
 import type { ToolDefinition } from './mcp/types'
 
-/**
- * A single step shown in the UI. Steps interleave within a turn:
- *   turn 1: [thinking, text, tool_call, tool_result, tool_call, tool_result]
- *   turn 2: [thinking, text]  ← final answer
- */
 export type AgentStep =
   | { kind: 'thinking'; turn: number }
   | { kind: 'text'; turn: number; text: string }
@@ -92,6 +87,16 @@ export function useAgent() {
   return { exchanges, isActive, ask, clear }
 }
 
+/**
+ * Remove the thinking placeholder for a given turn. Called whenever a
+ * "real" event (text, tool call, or turn completion) arrives for that turn.
+ * The thinking step only exists as a visual placeholder while Claude is
+ * processing — as soon as any actual output appears, it should disappear.
+ */
+function stripThinking(steps: AgentStep[], turn: number): AgentStep[] {
+  return steps.filter((s) => !(s.kind === 'thinking' && s.turn === turn))
+}
+
 function applyEvent(
   event: AgentEvent,
   updateSteps: (mutator: (steps: AgentStep[]) => AgentStep[]) => void,
@@ -105,18 +110,18 @@ function applyEvent(
 
     case 'text_delta':
       updateSteps((steps) => {
-        // Merge consecutive text deltas within the same turn into one step
-        const last = steps[steps.length - 1]
+        const cleaned = stripThinking(steps, event.turn)
+        const last = cleaned[cleaned.length - 1]
         if (last?.kind === 'text' && last.turn === event.turn) {
-          return [...steps.slice(0, -1), { ...last, text: last.text + event.delta }]
+          return [...cleaned.slice(0, -1), { ...last, text: last.text + event.delta }]
         }
-        return [...steps, { kind: 'text', turn: event.turn, text: event.delta }]
+        return [...cleaned, { kind: 'text', turn: event.turn, text: event.delta }]
       })
       break
 
     case 'tool_call_start':
       updateSteps((steps) => [
-        ...steps,
+        ...stripThinking(steps, event.turn),
         {
           kind: 'tool_call',
           turn: event.turn,
@@ -140,17 +145,10 @@ function applyEvent(
       break
 
     case 'turn_complete':
-      // Remove the trailing "thinking" placeholder for this turn, if it's still there
-      updateSteps((steps) => {
-        const filtered = steps.filter(
-          (s, i) => !(s.kind === 'thinking' && s.turn === event.turn && i === steps.length - 1),
-        )
-        return filtered
-      })
+      updateSteps((steps) => stripThinking(steps, event.turn))
       break
 
     case 'done':
-      // no-op, isRunning=false is set in finally block
       break
 
     case 'error':
