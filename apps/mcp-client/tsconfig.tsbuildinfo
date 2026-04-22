@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/lib/databrowser.tsx","./src/lib/infotooltip.tsx","./src/lib/agent.ts","./src/lib/apikey.ts","./src/lib/useagent.ts","./src/lib/crm/db.ts","./src/lib/crm/seed.ts","./src/lib/crm/server.ts","./src/lib/mcp/client.ts","./src/lib/mcp/server.ts","./src/lib/mcp/transport.ts","./src/lib/mcp/types.ts"],"version":"5.9.3"}
