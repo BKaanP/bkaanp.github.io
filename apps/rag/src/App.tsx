@@ -135,7 +135,7 @@ export default function App() {
           <h1 className="text-3xl font-semibold mb-3">Local-First RAG</h1>
           <p className="text-[var(--color-text-muted)] leading-relaxed max-w-2xl">
             Chat with your PDFs. Text extraction, chunking, and embeddings run entirely in your browser.
-            Only the final prompt and retrieved excerpts are sent to Claude &mdash; using your own API key.
+            Only the final prompt and retrieved excerpts are sent to Claude using your own API key.
           </p>
         </header>
  
@@ -272,7 +272,7 @@ export default function App() {
                   <em>semantic search</em> (meaning-based, via embeddings) and <em>keyword search</em> (BM25,
                   lexical overlap). Semantic handles synonyms and paraphrases well but can drift into
                   thematically similar but irrelevant content. Keyword is precise when the query shares words
-                  with the document. Slide to see how each end behaves &mdash; the middle usually wins.
+                  with the document. Slide to see how each end behaves. The middle usually wins.
                 </InfoTooltip>
               </div>
               <span className="text-xs font-mono text-[var(--color-accent)]">{alphaLabel}</span>

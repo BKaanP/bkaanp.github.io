@@ -11,9 +11,11 @@ Portfolio of small, focused experiments at the intersection of AI and frontend e
  
 | Project | Description | Live | Status |
 |---------|-------------|------|--------|
-| Semantic Image Search | CLIP-powered browser-native image search using transformers.js. No server, no uploads. | [→](https://bkaanp.github.io/image-search/) | In progress |
-| Local-First RAG | Chat with your PDFs. Embeddings and retrieval run fully client-side. | [→](https://bkaanp.github.io/rag/) | In progress |
-| MCP Client | Browser-based Model Context Protocol client with live tool-call visualization. | [→](https://bkaanp.github.io/mcp-client/) | In progress |
+| Semantic Image Search | CLIP-powered browser-native image search using transformers.js. No server, no uploads. | [→](https://bkaanp.github.io/image-search/) | Done |
+| Local-First RAG | Chat with your PDFs. Embeddings and retrieval run fully client-side. | [→](https://bkaanp.github.io/rag/) | Done |
+| MCP Client | Browser-based Model Context Protocol client with live tool-call visualization. | [→](https://bkaanp.github.io/mcp-client/) | Done |
+| Managed CRM Stack | The MCP CRM server, as a real backend. Docker Compose for local dev, Kubernetes manifests, end-to-end tests |  | In progress |
+| Novexa Global | Custom Next.js storefront for a business selling capsule homes |  | In progress |
  
 ## Stack
  
