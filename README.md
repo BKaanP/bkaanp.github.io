@@ -1,5 +1,8 @@
 # bkaanp.github.io
- 
+
+[![CI](https://github.com/bkaanp/bkaanp.github.io/actions/workflows/deploy.yml/badge.svg)](https://github.com/bkaanp/bkaanp.github.io/actions/workflows/deploy.yml)
+[![Deployed](https://img.shields.io/website?url=https%3A%2F%2Fbkaanp.github.io&label=live)](https://bkaanp.github.io)
+
 Portfolio of small, focused experiments at the intersection of AI and frontend engineering.
  
 **Live:** [bkaanp.github.io](https://bkaanp.github.io)
