@@ -1,14 +1,14 @@
 ---
 import '../styles/global.css';
- 
+
 type Status = 'live' | 'building' | 'planned';
- 
+
 const statusStyles: Record<Status, string> = {
   live: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
   building: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  planned: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+  planned: 'bg-red-500/10 text-red-400 border-red-500/30',
 };
- 
+
 const projects: Array<{
   title: string;
   description: string;
@@ -25,25 +25,38 @@ const projects: Array<{
   },
   {
     title: 'Local-First RAG',
-    description: 'Chat with your PDFs. Embeddings and retrieval run client-side; you bring the API key.',
-    tech: ['RAG', 'transformers.js', 'pdf.js'],
+    description: 'Chat with your PDFs. Hybrid retrieval, query expansion, and streaming answers from Claude.',
+    tech: ['RAG', 'BM25', 'transformers.js', 'pdf.js'],
     href: '/rag/',
     status: 'live',
   },
   {
     title: 'MCP Client',
-    description: 'Connect to Model Context Protocol servers from the browser. Watch tool calls happen live.',
-    tech: ['MCP', 'Anthropic SDK', 'TypeScript'],
+    description: 'Browser-native Model Context Protocol client with a live agent loop and visible tool calls.',
+    tech: ['MCP', 'Anthropic SDK', 'JSON-RPC'],
     href: '/mcp-client/',
     status: 'live',
   },
 ];
- 
+
+const stats: Array<{ label: string; href: string }> = [
+  { label: '3 apps live', href: '#' },
+  {
+    label: 'CI passing',
+    href: 'https://github.com/bkaanp/bkaanp.github.io/actions',
+  },
+  { label: '100% typed', href: 'https://github.com/bkaanp/bkaanp.github.io' },
+  {
+    label: 'auto-deployed',
+    href: 'https://github.com/bkaanp/bkaanp.github.io/blob/main/.github/workflows/deploy.yml',
+  },
+];
+
 const siteUrl = 'https://bkaanp.github.io';
 const title = 'Batuhan-Kaan Piskin — AI-integrated frontends';
 const description = 'Portfolio of small, focused experiments at the intersection of AI and frontend engineering. Berlin-based.';
 ---
- 
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -52,17 +65,17 @@ const description = 'Portfolio of small, focused experiments at the intersection
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={siteUrl} />
- 
+
     <meta property="og:type" content="website" />
     <meta property="og:url" content={siteUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:locale" content="en_US" />
- 
+
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
- 
+
     <meta name="theme-color" content="#0a0a0a" />
   </head>
   <body class="min-h-screen">
@@ -74,8 +87,8 @@ const description = 'Portfolio of small, focused experiments at the intersection
           Previously built an Azure-based RAG chatbot at Sparkassen Rating & Risikosysteme.
         </p>
       </header>
- 
-      <section class="mb-20">
+
+      <section class="mb-16">
         <h2 class="text-sm font-mono uppercase tracking-widest text-[var(--color-text-muted)] mb-6">Projects</h2>
         <ul class="space-y-4">
           {projects.map((p) => (
@@ -98,7 +111,20 @@ const description = 'Portfolio of small, focused experiments at the intersection
           ))}
         </ul>
       </section>
- 
+
+      <section class="mb-16">
+        <h2 class="text-sm font-mono uppercase tracking-widest text-[var(--color-text-muted)] mb-4">Engineering</h2>
+        <ul class="flex flex-wrap gap-x-5 gap-y-2 text-xs font-mono text-[var(--color-text-muted)]">
+          {stats.map((s) => (
+            <li>
+              <a href={s.href} class="hover:text-[var(--color-accent)] transition-colors">
+                {s.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <footer class="text-sm text-[var(--color-text-muted)]">
         <a href="https://github.com/bkaanp" class="hover:text-[var(--color-accent)] transition-colors">GitHub</a>
       </footer>
