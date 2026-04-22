@@ -127,7 +127,7 @@ export default function App() {
                     <strong>MCP Server.</strong> A process that exposes tools to any MCP-aware
                     client. Here the server runs in-browser (same JS runtime as the client),
                     but the protocol is identical to stdio or SSE transports. The server is
-                    passive &mdash; it only responds when called. The LLM is what decides when
+                    passive. It only responds when called. The LLM is what decides when
                     and how to use each tool.
                   </InfoTooltip>
                 </div>

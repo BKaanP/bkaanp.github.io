@@ -99,7 +99,7 @@ export default function App() {
         <header className="mb-10">
           <h1 className="text-3xl font-semibold mb-3">Semantic Image Search</h1>
           <p className="text-[var(--color-text-muted)] leading-relaxed max-w-2xl">
-            Upload photos and search them with natural language. Everything runs in your browser &mdash;
+            Upload photos and search them with natural language. Everything runs in your browser 
             images and embeddings never leave your device.
           </p>
         </header>
