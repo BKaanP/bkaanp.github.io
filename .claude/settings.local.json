@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/nvm4w//**)",
+      "Bash(/c/nvm4w/nvm.exe list *)",
+      "Bash(nvm list *)",
+      "Bash(/c/nvm4w/nodejs/node --version)",
+      "Bash(/c/nvm4w/nodejs/npx --version)",
+      "Bash(/c/nvm4w/nodejs/node.exe --version)",
+      "Bash(/c/nvm4w/nodejs/node.exe /c/nvm4w/nodejs/node_modules/npm/bin/npx-cli.js vite build)",
+      "Bash(node ./node_modules/typescript/bin/tsc --noEmit)",
+      "Bash(echo \"EXIT_IMAGE=$?\")",
+      "Bash(echo \"EXIT_RAG=$?\")",
+      "Bash(echo \"EXIT_MCP=$?\")",
+      "Bash(node ./node_modules/.bin/vitest run)",
+      "Bash(node ./node_modules/vitest/vitest.mjs run)",
+      "Bash(node ./node_modules/.bin/tsc --noEmit -p apps/image-search/tsconfig.json)",
+      "Bash(node ./node_modules/.bin/tsc --noEmit -p apps/rag/tsconfig.json)",
+      "Bash(node ./node_modules/.bin/tsc --noEmit -p apps/mcp-client/tsconfig.json)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

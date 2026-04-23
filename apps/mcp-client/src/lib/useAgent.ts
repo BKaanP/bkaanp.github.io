@@ -31,7 +31,6 @@ export function useAgent() {
 
   const ask = useCallback(
     async (params: {
-      apiKey: string
       client: McpClient
       tools: ToolDefinition[]
       question: string
@@ -53,7 +52,6 @@ export function useAgent() {
 
       try {
         for await (const event of runAgent({
-          apiKey: params.apiKey,
           client: params.client,
           tools: params.tools,
           userMessage: params.question,
@@ -87,12 +85,6 @@ export function useAgent() {
   return { exchanges, isActive, ask, clear }
 }
 
-/**
- * Remove the thinking placeholder for a given turn. Called whenever a
- * "real" event (text, tool call, or turn completion) arrives for that turn.
- * The thinking step only exists as a visual placeholder while Claude is
- * processing — as soon as any actual output appears, it should disappear.
- */
 function stripThinking(steps: AgentStep[], turn: number): AgentStep[] {
   return steps.filter((s) => !(s.kind === 'thinking' && s.turn === turn))
 }
