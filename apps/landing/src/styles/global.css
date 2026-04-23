@@ -1,9 +1,182 @@
 @import 'tailwindcss';
-@import '@bkaanp/tailwind-config/theme.css';
+
+/* ── Tokens ───────────────────────────────────────────────────────────────── */
+:root {
+  --bg:       oklch(7%  0.004 260);
+  --bg2:      oklch(11% 0.004 260);
+  --bg3:      oklch(16% 0.004 260);
+  --border:   oklch(22% 0.004 260);
+  --text:     oklch(95% 0.003 80);
+  --muted:    oklch(58% 0.004 260);
+  --faint:    oklch(30% 0.004 260);
+  --tag-bg:   oklch(16% 0.005 260);
+  --tag-text: oklch(70% 0.004 260);
+  --card-hover: oklch(13% 0.005 260);
+}
+
+[data-theme='light'] {
+  --bg:       oklch(97% 0.006 80);
+  --bg2:      oklch(93% 0.007 80);
+  --bg3:      oklch(89% 0.007 80);
+  --border:   oklch(82% 0.007 80);
+  --text:     oklch(12% 0.005 260);
+  --muted:    oklch(50% 0.005 260);
+  --faint:    oklch(75% 0.005 260);
+  --tag-bg:   oklch(89% 0.007 80);
+  --tag-text: oklch(35% 0.005 260);
+  --card-hover: oklch(91% 0.007 80);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
 
 body {
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  /* Theme-change transition on body bg/color only — not a catch-all * rule */
+  transition: background-color 0.4s ease, color 0.3s ease;
+}
+
+/* Noise overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 128px;
+}
+
+#root { position: relative; z-index: 1; }
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── Reveal animation ─────────────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── Keyframes ────────────────────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.8); }
+}
+@keyframes scroll-line {
+  0%   { transform: scaleY(0); transform-origin: top;    opacity: 0; }
+  40%  { transform: scaleY(1); transform-origin: top;    opacity: 1; }
+  60%  { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+  100% { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+}
+
+/* ── Nav ──────────────────────────────────────────────────────────────────── */
+.site-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 40px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  /* Scoped: only bg + border transition on theme change */
+  transition: background-color 0.4s ease, border-color 0.4s ease;
+}
+
+.site-nav a,
+.site-nav button {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.site-nav a:hover,
+.site-nav button:hover { color: var(--text); }
+
+.theme-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.theme-btn:hover { border-color: var(--faint); }
+
+/* ── Project card ─────────────────────────────────────────────────────────── */
+.project-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* Only the properties that actually animate on hover */
+  transition: background-color 0.2s ease,
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s ease;
+}
+.project-card.linked { cursor: pointer; }
+.project-card.linked:hover {
+  background: var(--card-hover);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+}
+.project-card .arrow-icon { opacity: 0.5; transition: opacity 0.2s; }
+.project-card.linked:hover .arrow-icon { opacity: 1; }
+
+/* Theme change: border + bg transition on cards */
+.project-card { transition: background-color 0.2s ease, transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease, border-color 0.4s ease; }
+
+/* ── Tags ─────────────────────────────────────────────────────────────────── */
+.tag {
+  display: inline-block;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  letter-spacing: 0.02em;
+  transition: background-color 0.4s ease, border-color 0.4s ease, color 0.3s ease;
+}
+
+/* ── Stat links ───────────────────────────────────────────────────────────── */
+.stat-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  text-decoration: none;
+  display: inline-block;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+a.stat-pill:hover { color: var(--text); border-color: var(--faint); }
+
+/* ── Project hero SVG area ────────────────────────────────────────────────── */
+.project-hero {
+  width: 100%; height: 110px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: background-color 0.4s ease, border-color 0.4s ease;
 }

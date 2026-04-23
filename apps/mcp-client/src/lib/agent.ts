@@ -1,12 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { McpClient } from './mcp/client'
 import type { ToolDefinition } from './mcp/types'
+import { PROXY_BASE_URL } from './proxy'
 
 const MODEL = 'claude-haiku-4-5-20251001'
 const MAX_TOKENS = 1024
-const MAX_TURNS = 10 // hard safety limit on agent loop iterations
-
-// ---------- Event types emitted during an agent run ----------
+const MAX_TURNS = 10
 
 export type AgentEvent =
   | { type: 'thinking'; turn: number }
@@ -17,10 +16,6 @@ export type AgentEvent =
   | { type: 'done' }
   | { type: 'error'; message: string }
 
-/**
- * Convert MCP tool definitions into the shape Anthropic's API expects.
- * The two formats are near-identical; MCP's `inputSchema` maps to Claude's `input_schema`.
- */
 function toAnthropicTools(tools: ToolDefinition[]): Anthropic.Messages.Tool[] {
   return tools.map((t) => ({
     name: t.name,
@@ -29,26 +24,14 @@ function toAnthropicTools(tools: ToolDefinition[]): Anthropic.Messages.Tool[] {
   }))
 }
 
-/**
- * Run an agent loop: Claude picks tools, we execute them via MCP, feed results
- * back, until Claude stops calling tools. Yields events so the UI can render
- * each step as it happens.
- *
- * Hard capped at MAX_TURNS to prevent runaway loops (e.g. a bug where Claude
- * keeps calling the same failing tool). In production you'd also add:
- *   - per-tool call timeout
- *   - max total tool calls (not just turns)
- *   - user confirmation for destructive tools
- */
 export async function* runAgent(params: {
-  apiKey: string
   client: McpClient
   tools: ToolDefinition[]
   userMessage: string
   systemPrompt: string
 }): AsyncGenerator<AgentEvent> {
-  const { apiKey, client, tools, userMessage, systemPrompt } = params
-  const anthropic = new Anthropic({ apiKey, dangerouslyAllowBrowser: true })
+  const { client, tools, userMessage, systemPrompt } = params
+  const anthropic = new Anthropic({ baseURL: PROXY_BASE_URL, apiKey: 'proxy', dangerouslyAllowBrowser: true })
   const anthropicTools = toAnthropicTools(tools)
 
   const messages: Anthropic.Messages.MessageParam[] = [
@@ -72,14 +55,12 @@ export async function* runAgent(params: {
       return
     }
 
-    // Emit any text deltas Claude produced in this turn
     for (const block of response.content) {
       if (block.type === 'text' && block.text) {
         yield { type: 'text_delta', turn, delta: block.text }
       }
     }
 
-    // Append assistant's message to history
     messages.push({ role: 'assistant', content: response.content })
 
     if (response.stop_reason !== 'tool_use') {
@@ -88,19 +69,12 @@ export async function* runAgent(params: {
       return
     }
 
-    // Execute every tool_use block, collect results for the next turn
     const toolResults: Anthropic.Messages.ToolResultBlockParam[] = []
 
     for (const block of response.content) {
       if (block.type !== 'tool_use') continue
 
-      yield {
-        type: 'tool_call_start',
-        turn,
-        id: block.id,
-        name: block.name,
-        input: block.input,
-      }
+      yield { type: 'tool_call_start', turn, id: block.id, name: block.name, input: block.input }
 
       let output = ''
       let isError = false

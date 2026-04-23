@@ -42,4 +42,4 @@ Requires Node 20+ and pnpm 9+.
  
 ## About
  
-Built by [Batuhan-Kaan Piskin](https://github.com/bkaanp) — Medieninformatik graduate (HTW Berlin, 2025), working at the intersection of frontend engineering and AI tooling. Previously built an Azure-based RAG chatbot at Sparkassen Rating & Risikosysteme.
+Built by [Batuhan-Kaan Piskin](https://github.com/bkaanp) Medieninformatik graduate (HTW Berlin, 2025), working at the intersection of frontend engineering and AI tooling. Previously built an Azure-based RAG chatbot at Sparkassen Rating & Risikosysteme.
