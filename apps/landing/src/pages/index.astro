@@ -1,175 +1,79 @@
 ---
 import '../styles/global.css';
 
-const PROJECTS = [
+type Status = 'live' | 'building' | 'next';
+
+const statusStyles: Record<Status, string> = {
+  live: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  building: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  next: 'bg-red-500/10 text-red-400 border-red-500/30',
+};
+
+interface Project {
+  title: string;
+  description: string;
+  tech: string[];
+  href: string;
+  status: Status;
+  disabled?: boolean;
+}
+
+const projects: Project[] = [
   {
-    id: 'image-search',
     title: 'Semantic Image Search',
-    status: 'live' as const,
-    href: 'https://bkaanp.github.io/image-search/',
-    desc: 'CLIP-powered image search running entirely in your browser. No server, no uploads.',
-    tags: ['transformers.js', 'React', 'IndexedDB'],
-    hue: 220,
+    description: 'CLIP-powered image search running entirely in your browser. No server, no uploads.',
+    tech: ['transformers.js', 'React', 'IndexedDB'],
+    href: '/image-search/',
+    status: 'live',
   },
   {
-    id: 'rag',
     title: 'Local-First RAG',
-    status: 'live' as const,
-    href: 'https://bkaanp.github.io/rag/',
-    desc: 'Chat with your PDFs. Hybrid retrieval, query expansion, and streaming answers from Claude.',
-    tags: ['RAG', 'BM25', 'transformers.js', 'pdf.js'],
-    hue: 200,
+    description: 'Chat with your PDFs. Hybrid retrieval, query expansion, and streaming answers from Claude.',
+    tech: ['RAG', 'BM25', 'transformers.js', 'pdf.js'],
+    href: '/rag/',
+    status: 'live',
   },
   {
-    id: 'mcp',
     title: 'MCP Client',
-    status: 'live' as const,
-    href: 'https://bkaanp.github.io/mcp-client/',
-    desc: 'Browser-native Model Context Protocol client with a live agent loop and visible tool calls.',
-    tags: ['MCP', 'Anthropic SDK', 'JSON-RPC'],
-    hue: 240,
+    description: 'Browser-native Model Context Protocol client with a live agent loop and visible tool calls.',
+    tech: ['MCP', 'Anthropic SDK', 'JSON-RPC'],
+    href: '/mcp-client/',
+    status: 'live',
   },
   {
-    id: 'crm',
     title: 'Managed CRM Stack',
-    status: 'building' as const,
-    href: null,
-    desc: 'The MCP CRM server, lifted out of the browser and shipped as a real backend. Docker Compose for local dev, Kubernetes manifests, end-to-end tests.',
-    tags: ['Docker', 'Kubernetes', 'Postgres', 'FastAPI', 'MCP'],
-    hue: 30,
+    description: 'The MCP CRM server, lifted out of the browser and shipped as a real backend. Docker Compose for local dev, Kubernetes manifests, end-to-end tests.',
+    tech: ['Docker', 'Kubernetes', 'Postgres', 'FastAPI', 'MCP'],
+    href: '#',
+    status: 'building',
+    disabled: true,
   },
   {
-    id: 'novexa',
     title: 'Novexa Global',
-    status: 'next' as const,
-    href: null,
-    desc: 'Custom Next.js storefront for a business selling capsule homes. Multi-language, AI-generated product descriptions, AI workflow optimization.',
-    tags: ['Next.js', 'Postgres', 'Claude API', 'Vercel'],
-    hue: 160,
+    description: 'Custom Next.js storefront for a business selling capsule homes. Multi-language with AI-generated product descriptions. Additionally AI focused workflow optimization',
+    tech: ['Next.js', 'Postgres', 'Claude API', 'Vercel'],
+    href: '#',
+    status: 'next',
+    disabled: true,
   },
 ];
 
-const STATS = [
-  { label: '3 apps live', href: null },
-  { label: 'CI passing',    href: 'https://github.com/bkaanp/bkaanp.github.io/actions' },
-  { label: '100% typed',    href: 'https://github.com/bkaanp/bkaanp.github.io' },
-  { label: 'auto-deployed', href: 'https://github.com/bkaanp/bkaanp.github.io/blob/main/.github/workflows/deploy.yml' },
+const stats: Array<{ label: string; href: string }> = [
+  { label: '3 apps live', href: '#' },
+  {
+    label: 'CI passing',
+    href: 'https://github.com/bkaanp/bkaanp.github.io/actions',
+  },
+  { label: '100% typed', href: 'https://github.com/bkaanp/bkaanp.github.io' },
+  {
+    label: 'auto-deployed',
+    href: 'https://github.com/bkaanp/bkaanp.github.io/blob/main/.github/workflows/deploy.yml',
+  },
 ];
 
-const STATUS_META = {
-  live:     { label: 'live',     color: 'oklch(72% 0.15 145)' },
-  building: { label: 'building', color: 'oklch(72% 0.12 55)'  },
-  next:     { label: 'next',     color: 'oklch(65% 0.1 260)'  },
-};
-
-const live = PROJECTS.filter(p => p.status === 'live');
-const wip  = PROJECTS.filter(p => p.status !== 'live');
-
-const siteUrl   = 'https://bkaanp.github.io';
-const pageTitle = 'Batuhan-Kaan Piskin - AI-integrated frontends';
-const pageDesc  = 'Portfolio of small, focused experiments at the intersection of AI and frontend engineering. Berlin-based.';
-
-/* SVG diagrams — rendered server-side, colours injected via CSS vars via currentColor */
-const diagrams: Record<string, string> = {
-  'image-search': `
-    <rect x="16" y="14" width="228" height="24" rx="4" fill="var(--bg2)" stroke="var(--border)"/>
-    <circle cx="31" cy="26" r="5" stroke="var(--muted)" stroke-width="1.5"/>
-    <line x1="34.5" y1="29.5" x2="38" y2="33" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round"/>
-    <rect x="46" y="22" width="80" height="8" rx="2" fill="var(--border)"/>
-    ${[0,1,2,3,4,5].map(i => {
-      const col = i % 3, row = Math.floor(i / 3);
-      const x = 16 + col * 76, y = 50 + row * 44;
-      const l = 14 + col * 3 + row * 2, h = 220 + i * 18;
-      return `<g>
-        <rect x="${x}" y="${y}" width="68" height="38" rx="3" fill="oklch(${l}% 0.012 ${h})" stroke="var(--border)"/>
-        ${i === 0 ? `<rect x="${x+4}" y="${y+4}" width="24" height="10" rx="2" fill="rgba(0,0,0,0.5)"/>
-        <rect x="${x+6}" y="${y+7}" width="14" height="4" rx="1" fill="var(--muted)"/>` : ''}
-      </g>`;
-    }).join('')}`,
-
-  'rag': `
-    <rect x="16" y="18" width="44" height="56" rx="3" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="22" y="28" width="30" height="3" rx="1" fill="var(--border)"/>
-    <rect x="22" y="34" width="22" height="3" rx="1" fill="var(--border)"/>
-    <rect x="22" y="40" width="26" height="3" rx="1" fill="var(--border)"/>
-    <rect x="22" y="46" width="18" height="3" rx="1" fill="var(--border)"/>
-    <rect x="22" y="52" width="28" height="3" rx="1" fill="var(--border)"/>
-    <text x="24" y="67" font-family="monospace" font-size="7" fill="var(--muted)">PDF</text>
-    <line x1="66" y1="46" x2="96" y2="46" stroke="var(--border)" stroke-width="1.5"/>
-    <path d="M93 42l5 4-5 4" stroke="var(--border)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    ${[0,1,2,3].map(i => `
-    <rect x="102" y="${22+i*13}" width="50" height="10" rx="2" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="106" y="${25+i*13}" width="${[32,26,30,22][i]}" height="4" rx="1" fill="var(--border)"/>`).join('')}
-    <line x1="158" y1="46" x2="184" y2="46" stroke="var(--border)" stroke-width="1.5"/>
-    <path d="M181 42l5 4-5 4" stroke="var(--border)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="190" y="22" width="54" height="32" rx="4" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="196" y="29" width="36" height="3" rx="1" fill="var(--border)"/>
-    <rect x="196" y="35" width="28" height="3" rx="1" fill="var(--border)"/>
-    <rect x="196" y="41" width="32" height="3" rx="1" fill="var(--border)"/>
-    <path d="M198 54l4 8 8-8" fill="var(--bg2)" stroke="var(--border)" stroke-width="1"/>
-    <rect x="190" y="74" width="54" height="20" rx="4" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="196" y="80" width="24" height="3" rx="1" fill="var(--border)"/>
-    <rect x="196" y="86" width="18" height="3" rx="1" fill="var(--border)"/>`,
-
-  'mcp': `
-    <rect x="12" y="16" width="58" height="26" rx="4" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="18" y="23" width="36" height="3" rx="1" fill="var(--border)"/>
-    <rect x="18" y="29" width="28" height="3" rx="1" fill="var(--border)"/>
-    <text x="14" y="52" font-family="monospace" font-size="7" fill="var(--muted)">user</text>
-    <line x1="41" y1="55" x2="41" y2="68" stroke="var(--border)" stroke-width="1.2"/>
-    <path d="M37 65l4 5 4-5" stroke="var(--border)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="12" y="70" width="58" height="26" rx="4" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="18" y="77" width="40" height="3" rx="1" fill="var(--border)"/>
-    <rect x="18" y="83" width="28" height="3" rx="1" fill="var(--border)"/>
-    <text x="8" y="106" font-family="monospace" font-size="7" fill="var(--muted)">claude</text>
-    <line x1="72" y1="83" x2="102" y2="83" stroke="var(--border)" stroke-width="1.2"/>
-    <path d="M99 79l5 4-5 4" stroke="var(--border)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-    ${['list_leads','get_lead','log_interaction'].map((_, i) => `
-    <rect x="108" y="${16+i*30}" width="72" height="22" rx="3" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="113" y="${21+i*30}" width="44" height="3" rx="1" fill="var(--border)"/>
-    <rect x="113" y="${27+i*30}" width="28" height="3" rx="1" fill="var(--border)" opacity="0.5"/>`).join('')}
-    <rect x="108" y="96" width="72" height="10" rx="2" fill="var(--bg2)" stroke="var(--border)"/>
-    <text x="114" y="104" font-family="monospace" font-size="7" fill="var(--muted)">MCP server</text>
-    <line x1="182" y1="44" x2="208" y2="44" stroke="var(--border)" stroke-width="1.2"/>
-    <path d="M205 40l5 4-5 4" stroke="var(--border)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="210" y="28" width="38" height="60" rx="4" fill="var(--bg2)" stroke="var(--border)"/>
-    ${[35,41,47,53,59].map(y => `<rect x="215" y="${y}" width="${[26,20,22,18,24][Math.floor((y-35)/6)]}" height="3" rx="1" fill="var(--border)"/>`).join('')}
-    <text x="210" y="98" font-family="monospace" font-size="7" fill="var(--muted)">result</text>`,
-
-  'crm': `
-    <rect x="14" y="14" width="232" height="82" rx="5" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="14" y="14" width="232" height="18" rx="5" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="14" y="22" width="232" height="10" fill="var(--bg2)"/>
-    <circle cx="24" cy="23" r="3" fill="var(--border)"/>
-    <circle cx="34" cy="23" r="3" fill="var(--border)"/>
-    <circle cx="44" cy="23" r="3" fill="var(--border)"/>
-    <rect x="55" y="18" width="110" height="10" rx="2" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="22" y="38" width="222" height="8" rx="1" fill="var(--border)" opacity="0.5"/>
-    ${[0,1,2,3,4].map(i => `
-    <rect x="22" y="${50+i*11}" width="222" height="9" rx="1" fill="${i%2===0?'var(--bg2)':'transparent'}"/>
-    <rect x="26" y="${52+i*11}" width="50" height="4" rx="1" fill="var(--border)"/>
-    <rect x="90" y="${52+i*11}" width="60" height="4" rx="1" fill="var(--border)"/>
-    <rect x="170" y="${52+i*11}" width="34" height="4" rx="1" fill="var(--border)"/>`).join('')}`,
-
-  'novexa': `
-    <rect x="14" y="14" width="140" height="82" rx="4" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="20" y="20" width="128" height="52" rx="3" fill="var(--border)" opacity="0.4"/>
-    <path d="M60 52 L84 34 L108 52 L108 68 L60 68 Z" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="72" y="56" width="14" height="12" rx="1" fill="var(--border)"/>
-    <rect x="80" y="24" width="32" height="4" rx="1" fill="var(--border)" opacity="0.5"/>
-    <rect x="22" y="78" width="60" height="4" rx="1" fill="var(--border)"/>
-    <rect x="22" y="84" width="44" height="4" rx="1" fill="var(--border)"/>
-    <rect x="162" y="14" width="84" height="20" rx="3" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="168" y="20" width="48" height="4" rx="1" fill="var(--border)"/>
-    <rect x="168" y="26" width="32" height="4" rx="1" fill="var(--border)"/>
-    <rect x="162" y="40" width="84" height="20" rx="3" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="168" y="46" width="56" height="4" rx="1" fill="var(--border)"/>
-    <rect x="168" y="52" width="40" height="4" rx="1" fill="var(--border)"/>
-    <rect x="162" y="66" width="84" height="20" rx="3" fill="var(--bg2)" stroke="var(--border)"/>
-    <rect x="168" y="72" width="36" height="4" rx="1" fill="var(--border)"/>
-    <rect x="168" y="78" width="52" height="4" rx="1" fill="var(--border)"/>
-    <rect x="162" y="92" width="84" height="4" rx="2" fill="var(--border)" opacity="0.6"/>`,
-};
+const siteUrl = 'https://bkaanp.github.io';
+const title = 'Batuhan-Kaan Piskin — AI-integrated frontends';
+const description = 'Portfolio of small, focused experiments at the intersection of AI and frontend engineering. Berlin-based.';
 ---
 
 <!doctype html>
@@ -177,295 +81,90 @@ const diagrams: Record<string, string> = {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{pageTitle}</title>
-    <meta name="description" content={pageDesc} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
     <link rel="canonical" href={siteUrl} />
 
-    <meta property="og:type"        content="website" />
-    <meta property="og:url"         content={siteUrl} />
-    <meta property="og:title"       content={pageTitle} />
-    <meta property="og:description" content={pageDesc} />
-    <meta property="og:locale"      content="en_US" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={siteUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content="en_US" />
 
-    <meta name="twitter:card"        content="summary" />
-    <meta name="twitter:title"       content={pageTitle} />
-    <meta name="twitter:description" content={pageDesc} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
 
-    <meta name="theme-color" content="#0d0b08" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Space+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <meta name="theme-color" content="#0a0a0a" />
   </head>
-
-  <body>
-    <!-- ── Nav ── -->
-    <nav class="site-nav">
-      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;">
-        bkaanp
-      </span>
-      <div style="display:flex;align-items:center;gap:20px;">
-        <button id="theme-btn" class="theme-btn" aria-label="Toggle theme">☀ light</button>
-        <a href="https://github.com/bkaanp" target="_blank" rel="noopener noreferrer"
-           style="display:flex;align-items:center;gap:6px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:500;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.34-3.369-1.34-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
-          </svg>
-          GitHub
-        </a>
-      </div>
-    </nav>
-
-    <!-- ── Hero ── -->
-    <section id="hero" style="
-      min-height:100vh;display:flex;flex-direction:column;justify-content:center;
-      padding:80px 40px 60px;max-width:920px;margin:0 auto;position:relative;">
-
-      <!-- Decorative vertical line -->
-      <div id="hero-line" style="
-        position:absolute;left:40px;top:50%;width:1px;height:0;
-        background:linear-gradient(to bottom,transparent,var(--border),transparent);
-        transition:height 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s;"></div>
-
-      <div style="padding-left:28px;">
-        <p id="hero-sub" style="
-          font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;
-          text-transform:uppercase;color:var(--muted);margin-bottom:20px;
-          opacity:0;transform:translateY(16px);
-          transition:opacity 0.8s ease 0.1s,transform 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s;">
-          Engineer · Berlin
+  <body class="min-h-screen">
+    <main class="max-w-3xl mx-auto px-6 py-24">
+      <header class="mb-20">
+        <h1 class="text-4xl font-semibold tracking-tight mb-4">Batuhan-Kaan Piskin</h1>
+        <p class="text-lg text-[var(--color-text-muted)] leading-relaxed">
+          Frontend engineer working at the intersection of AI and product. Based in Berlin.
+          Previously built an Azure-based RAG chatbot at Sparkassen Rating & Risikosysteme.
         </p>
+      </header>
 
-        <div id="hero-name" style="
-          opacity:0;transform:translateY(20px);
-          transition:opacity 0.8s ease 0.2s,transform 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s;">
-          <h1 style="font-family:'Playfair Display',serif;font-size:clamp(42px,7vw,86px);font-weight:500;
-            line-height:1.05;letter-spacing:-0.02em;color:var(--text);margin-bottom:8px;">
-            Batuhan-Kaan
-          </h1>
-          <h1 style="font-family:'Playfair Display',serif;font-size:clamp(42px,7vw,86px);font-weight:400;
-            line-height:1.05;letter-spacing:-0.02em;color:var(--muted);margin-bottom:36px;font-style:italic;">
-            Piskin
-          </h1>
-        </div>
+      <section class="mb-16">
+        <h2 class="text-sm font-mono uppercase tracking-widest text-[var(--color-text-muted)] mb-6">Projects</h2>
+        <ul class="space-y-4">
+          {projects.map((p) => {
+            const cardClass = 'block p-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-colors';
+            const activeClass = `${cardClass} hover:border-[var(--color-accent)]`;
+            const nextClass = `${cardClass} opacity-70 cursor-default`;
 
-        <p id="hero-desc" style="
-          font-size:16px;line-height:1.7;color:var(--muted);max-width:460px;font-weight:300;
-          opacity:0;transform:translateY(16px);
-          transition:opacity 0.8s ease 0.4s,transform 0.8s cubic-bezier(0.16,1,0.3,1) 0.4s;">
-          Working at the intersection of AI and product.
-          
-        </p>
-      </div>
+            const inner = (
+              <>
+                <div class="flex items-baseline justify-between gap-4 mb-2">
+                  <h3 class="text-lg font-medium">{p.title}</h3>
+                  <span class={`text-xs font-mono px-2 py-0.5 rounded border ${statusStyles[p.status]}`}>
+                    {p.status}
+                  </span>
+                </div>
+                <p class="text-[var(--color-text-muted)] mb-4 leading-relaxed">{p.description}</p>
+                <div class="flex flex-wrap gap-2">
+                  {p.tech.map((t) => (
+                    <span class="text-xs font-mono px-2 py-1 rounded bg-[var(--color-bg)] border border-[var(--color-border)]">{t}</span>
+                  ))}
+                </div>
+              </>
+            );
 
-      <!-- Scroll hint -->
-      <div id="scroll-hint" style="
-        position:absolute;bottom:40px;left:50%;transform:translateX(-50%);
-        opacity:0;transition:opacity 1s ease 1.2s;
-        display:flex;flex-direction:column;align-items:center;gap:6px;">
-        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.1em;
-          color:var(--muted);text-transform:uppercase;">scroll</span>
-        <div style="width:1px;height:40px;
-          background:linear-gradient(to bottom,var(--muted),transparent);
-          animation:scroll-line 2s ease-in-out infinite;"></div>
-      </div>
-    </section>
-
-    <!-- ── Projects ── -->
-    <section style="padding:0 40px 100px;max-width:920px;margin:0 auto;">
-      <div class="reveal">
-        <p style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.14em;
-          text-transform:uppercase;color:var(--faint);margin-bottom:32px;
-          display:flex;align-items:center;gap:14px;">
-          <span style="display:inline-block;width:24px;height:1px;background:var(--border);"></span>
-          Selected work
-        </p>
-      </div>
-
-      <!-- Live -->
-      <div style="margin-bottom:60px;">
-        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);
-          letter-spacing:0.06em;margin-bottom:20px;text-transform:uppercase;">
-          ↗ deployed &amp; interactive
-        </p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;align-items:start;">
-          {live.map((p) => {
-            const sm = STATUS_META[p.status];
             return (
-              <div class="reveal">
-                <a href={p.href} target="_blank" rel="noopener noreferrer"
-                   style="text-decoration:none;display:block;height:100%;">
-                  <article class="project-card linked">
-                    <div class="project-hero">
-                      <svg viewBox="0 0 260 110" fill="none" xmlns="http://www.w3.org/2000/svg"
-                           style="width:100%;height:100%;" set:html={diagrams[p.id] ?? ''} />
-                    </div>
-                    <div style="padding:20px 22px 22px;display:flex;flex-direction:column;gap:12px;flex:1;">
-                      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-                        <div style="display:flex;flex-direction:column;gap:5px;">
-                          <span style={`display:inline-flex;align-items:center;gap:5px;
-                            font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;
-                            letter-spacing:0.06em;color:${sm.color};text-transform:uppercase;`}>
-                            <span style={`width:5px;height:5px;border-radius:50%;background:${sm.color};
-                              box-shadow:0 0 6px ${sm.color};animation:pulse 2s ease-in-out infinite;`}></span>
-                            {sm.label}
-                          </span>
-                          <h3 style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500;
-                            color:var(--text);line-height:1.2;">{p.title}</h3>
-                        </div>
-                        <svg class="arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                             stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                             style="flex-shrink:0;margin-top:18px;" aria-hidden="true">
-                          <path d="M7 17L17 7M17 7H7M17 7v10"/>
-                        </svg>
-                      </div>
-                      <p style="font-size:13px;line-height:1.65;color:var(--muted);flex:1;">{p.desc}</p>
-                      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;">
-                        {p.tags.map(t => <span class="tag">{t}</span>)}
-                      </div>
-                    </div>
-                  </article>
-                </a>
-              </div>
+              <li>
+                {p.disabled ? (
+                  <div class={nextClass} aria-disabled="true">
+                    {inner}
+                  </div>
+                ) : (
+                  <a href={p.href} class={activeClass}>
+                    {inner}
+                  </a>
+                )}
+              </li>
             );
           })}
-        </div>
-      </div>
+        </ul>
+      </section>
 
-      <!-- Divider -->
-      <div style="border-top:1px solid var(--border);margin-bottom:48px;"></div>
+      <section class="mb-16">
+        <h2 class="text-sm font-mono uppercase tracking-widest text-[var(--color-text-muted)] mb-4">Engineering</h2>
+        <ul class="flex flex-wrap gap-x-5 gap-y-2 text-xs font-mono text-[var(--color-text-muted)]">
+          {stats.map((s) => (
+            <li>
+              <a href={s.href} class="hover:text-[var(--color-accent)] transition-colors">
+                {s.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      <!-- WIP -->
-      <div>
-        <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);
-          letter-spacing:0.06em;margin-bottom:20px;text-transform:uppercase;">
-          ⟳ in the works
-        </p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;align-items:start;">
-          {wip.map((p) => {
-            const sm = STATUS_META[p.status];
-            return (
-              <div class="reveal">
-                <article class="project-card">
-                  <div class="project-hero">
-                    <svg viewBox="0 0 260 110" fill="none" xmlns="http://www.w3.org/2000/svg"
-                         style="width:100%;height:100%;" set:html={diagrams[p.id] ?? ''} />
-                  </div>
-                  <div style="padding:20px 22px 22px;display:flex;flex-direction:column;gap:12px;flex:1;">
-                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-                      <div style="display:flex;flex-direction:column;gap:5px;">
-                        <span style={`display:inline-flex;align-items:center;gap:5px;
-                          font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;
-                          letter-spacing:0.06em;color:${sm.color};text-transform:uppercase;`}>
-                          <span style={`width:5px;height:5px;border-radius:50%;background:${sm.color};`}></span>
-                          {sm.label}
-                        </span>
-                        <h3 style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500;
-                          color:var(--text);line-height:1.2;">{p.title}</h3>
-                      </div>
-                    </div>
-                    <p style="font-size:13px;line-height:1.65;color:var(--muted);flex:1;">{p.desc}</p>
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;">
-                      {p.tags.map(t => <span class="tag">{t}</span>)}
-                    </div>
-                  </div>
-                </article>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Engineering ── -->
-    <section style="padding:0 40px 100px;max-width:920px;margin:0 auto;">
-      <div class="reveal">
-        <p style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.14em;
-          text-transform:uppercase;color:var(--faint);margin-bottom:32px;
-          display:flex;align-items:center;gap:14px;">
-          <span style="display:inline-block;width:24px;height:1px;background:var(--border);"></span>
-          Engineering
-        </p>
-      </div>
-      <div class="reveal" style="display:flex;flex-wrap:wrap;gap:10px;">
-        {STATS.map(s => s.href
-          ? <a href={s.href} target="_blank" rel="noopener noreferrer" class="stat-pill">{s.label}</a>
-          : <span class="stat-pill">{s.label}</span>
-        )}
-      </div>
-    </section>
-
-    <!-- ── Footer ── -->
-    <footer style="border-top:1px solid var(--border);padding:28px 40px;
-      display:flex;align-items:center;justify-content:space-between;
-      max-width:920px;margin:0 auto;
-      transition:border-color 0.4s ease;">
-      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;
-        color:var(--faint);letter-spacing:0.08em;">© 2026</span>
-      <a href="https://github.com/bkaanp" target="_blank" rel="noopener noreferrer"
-         style="font-family:'JetBrains Mono',monospace;font-size:10px;
-           color:var(--faint);text-decoration:none;letter-spacing:0.08em;
-           transition:color 0.2s ease;"
-         onmouseover="this.style.color='var(--muted)'"
-         onmouseout="this.style.color='var(--faint)'">
-        github.com/bkaanp
-      </a>
-    </footer>
-
-    <script>
-      // ── Theme toggle ──────────────────────────────────────────────────────
-      // Reads/writes localStorage only; mutates the <html> data-theme attribute.
-      // No React state, no stale closure over DOM reads.
-      const html = document.documentElement;
-      const btn  = document.getElementById('theme-btn') as HTMLButtonElement;
-
-      function applyTheme(theme: string) {
-        html.setAttribute('data-theme', theme);
-        btn.textContent = theme === 'dark' ? '☀ light' : '☾ dark';
-        localStorage.setItem('theme', theme);
-      }
-
-      // Restore persisted preference (default: dark)
-      applyTheme(localStorage.getItem('theme') ?? 'dark');
-
-      btn.addEventListener('click', () => {
-        applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-      });
-
-      // ── Hero mount animation ──────────────────────────────────────────────
-      // requestAnimationFrame ensures styles are applied after first paint
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const show = (id: string) => {
-            const el = document.getElementById(id);
-            if (el) { el.style.opacity = '1'; el.style.transform = 'none'; }
-          };
-          show('hero-sub');
-          show('hero-name');
-          show('hero-desc');
-
-          const line = document.getElementById('hero-line');
-          if (line) line.style.height = '160px';
-
-          setTimeout(() => {
-            const hint = document.getElementById('scroll-hint');
-            if (hint) hint.style.opacity = '0.35';
-          }, 1200);
-        });
-      });
-
-      // ── Scroll reveal ─────────────────────────────────────────────────────
-      // Uses IntersectionObserver — no scroll listener, no memory leak.
-      const obs = new IntersectionObserver(
-        (entries) => entries.forEach(e => {
-          if (e.isIntersecting) {
-            e.target.classList.add('visible');
-            obs.unobserve(e.target);
-          }
-        }),
-        { threshold: 0.12 }
-      );
-      document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
-    </script>
+      <footer class="text-sm text-[var(--color-text-muted)]">
+        <a href="https://github.com/bkaanp" class="hover:text-[var(--color-accent)] transition-colors">GitHub</a>
+      </footer>
+    </main>
   </body>
 </html>

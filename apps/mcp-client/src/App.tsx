@@ -5,64 +5,11 @@ import type { ToolDefinition } from './lib/mcp/types'
 import { createCrmServer } from './lib/crm/server'
 import { seedCrmIfEmpty } from './lib/crm/seed'
 import { useAgent, type AgentStep } from './lib/useAgent'
+import { getApiKey, looksLikeAnthropicKey, setApiKey } from './lib/apiKey'
 import { InfoTooltip } from './lib/InfoTooltip'
 import { DataBrowser } from './lib/DataBrowser'
 
 type InitStatus = 'initializing' | 'ready' | 'error'
-
-// ── Shared shell components ───────────────────────────────────────────────────
-
-function AppNav({ crumb }: { crumb: string }) {
-  return (
-    <div style={{
-      height: 52, background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 32px', flexShrink: 0, position: 'sticky', top: 0, zIndex: 10,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>bkaanp</span>
-        <span style={{ color: 'var(--color-text-faint)', fontSize: 12 }}>/</span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text)', letterSpacing: '0.06em' }}>{crumb}</span>
-      </div>
-      <a href="/" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)', textDecoration: 'none', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M5 12l7-7M5 12l7 7"/></svg>
-        portfolio
-      </a>
-    </div>
-  )
-}
-
-function AppHeader({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div style={{ padding: '40px 32px 32px', borderBottom: '1px solid var(--color-border)' }}>
-      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--color-text-faint)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ display: 'inline-block', width: 16, height: 1, background: 'var(--color-border)' }} />
-        project
-      </p>
-      <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 34, fontWeight: 500, color: 'var(--color-text)', marginBottom: 12, letterSpacing: '-0.01em', lineHeight: 1.1 }}>{title}</h1>
-      <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--color-text-muted)', maxWidth: 520, fontWeight: 300 }}>{subtitle}</p>
-    </div>
-  )
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--color-text-faint)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-      <span style={{ display: 'inline-block', width: 16, height: 1, background: 'var(--color-border)' }} />
-      {children}
-    </p>
-  )
-}
-
-function Tag({ label }: { label: string }) {
-  return (
-    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '2px 7px', background: 'var(--color-tag-bg)', color: 'var(--color-tag-text)', border: '1px solid var(--color-border)', borderRadius: 3 }}>
-      {label}
-    </span>
-  )
-}
-
-// ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [status, setStatus] = useState<InitStatus>('initializing')
@@ -72,6 +19,9 @@ export default function App() {
   const [client, setClient] = useState<McpClient | null>(null)
 
   const [question, setQuestion] = useState('')
+  const [showKeyDialog, setShowKeyDialog] = useState(false)
+  const [keyInput, setKeyInput] = useState('')
+  const [hasKey, setHasKey] = useState<boolean>(() => !!getApiKey())
 
   const { exchanges, isActive, ask, clear: clearChat } = useAgent()
 
@@ -104,196 +54,256 @@ export default function App() {
 
   async function handleAsk() {
     if (!question.trim() || !client || isActive || tools.length === 0) return
+    const apiKey = getApiKey()
+    if (!apiKey) {
+      setShowKeyDialog(true)
+      return
+    }
     const q = question
     setQuestion('')
-    await ask({ client, tools, question: q })
+    await ask({ apiKey, client, tools, question: q })
+  }
+
+  function handleSaveKey() {
+    const trimmed = keyInput.trim()
+    if (!looksLikeAnthropicKey(trimmed)) {
+      alert('That does not look like an Anthropic API key (expected format: sk-ant-...)')
+      return
+    }
+    setApiKey(trimmed)
+    setHasKey(true)
+    setShowKeyDialog(false)
+    setKeyInput('')
   }
 
   const canAsk = status === 'ready' && !isActive
 
   return (
-    <div style={{ background: 'var(--color-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-sans)' }}>
-      <AppNav crumb="mcp-client" />
-      <div style={{ maxWidth: 760, width: '100%', margin: '0 auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <AppHeader
-        title="MCP Client"
-        subtitle="A browser-native Model Context Protocol client connected to an in-browser CRM server. Watch Claude decide which tools to call and follow the agent loop turn by turn."
-      />
+    <main className="min-h-screen px-6 py-12">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-start justify-between gap-4 mb-8">
+          <a
+            href="/"
+            className="inline-block text-sm font-mono text-[var(--color-accent)] hover:underline"
+          >
+            &larr; back to portfolio
+          </a>
+          <button
+            onClick={() => setShowKeyDialog(true)}
+            className="text-xs font-mono text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"
+          >
+            {hasKey ? 'api key: set' : 'api key: not set'}
+          </button>
+        </div>
 
-      <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <header className="mb-10">
+          <h1 className="text-3xl font-semibold mb-3">MCP Client</h1>
+          <p className="text-[var(--color-text-muted)] leading-relaxed max-w-2xl">
+            A browser-native Model Context Protocol client connected to an in-browser CRM server.
+            Watch Claude decide which tools to call, see every request and response, and follow
+            the agent loop turn by turn.
+          </p>
+        </header>
 
-        {/* Init status */}
         {status === 'initializing' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: 'oklch(72% 0.12 55)' }} />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'oklch(72% 0.12 55)', letterSpacing: '0.06em' }}>INITIALIZING…</span>
-          </div>
+          <p className="text-sm font-mono text-[var(--color-text-muted)]">Initializing...</p>
         )}
+
         {status === 'error' && (
-          <div style={{ padding: '12px 14px', borderRadius: 5, border: '1px solid oklch(65% 0.18 25 / 40%)', background: 'oklch(65% 0.18 25 / 5%)' }}>
-            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'oklch(65% 0.18 25)' }}>initialization failed: {errorMsg}</p>
+          <div className="p-4 rounded-lg border border-red-500/50 bg-[var(--color-surface)]">
+            <p className="text-sm font-mono text-red-400">Initialization failed: {errorMsg}</p>
           </div>
         )}
 
         {status === 'ready' && (
           <>
-            {/* Server status row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: 'oklch(72% 0.15 145)', boxShadow: '0 0 6px oklch(72% 0.15 145)' }} />
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'oklch(72% 0.15 145)', letterSpacing: '0.06em' }}>SERVER CONNECTED</span>
-            </div>
-
-            {/* Connected server card */}
-            <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '16px 18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <SectionLabel>Connected server</SectionLabel>
+            <section className="mb-6 p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-mono uppercase tracking-widest text-[var(--color-text-muted)]">
+                    connected server
+                  </p>
                   <InfoTooltip>
-                    <strong>MCP Server.</strong> A process that exposes tools to any MCP-aware client. Here the server runs in-browser, but the protocol is identical to stdio or SSE transports. The LLM decides when and how to use each tool.
+                    <strong>MCP Server.</strong> A process that exposes tools to any MCP-aware
+                    client. Here the server runs in-browser (same JS runtime as the client),
+                    but the protocol is identical to stdio or SSE transports. The server is
+                    passive. It only responds when called. The LLM is what decides when
+                    and how to use each tool.
                   </InfoTooltip>
                 </div>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text)' }}>{serverName}</span>
+                <span className="text-xs font-mono text-[var(--color-accent)]">{serverName}</span>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {tools.map((t) => <Tag key={t.name} label={t.name} />)}
-              </div>
-              <details style={{ marginTop: 10 }}>
-                <summary style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-faint)', cursor: 'pointer' }}>
-                  {tools.length} tools — click to see descriptions
+              <details>
+                <summary className="cursor-pointer text-xs font-mono text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
+                  {tools.length} tools available
                 </summary>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <ul className="mt-3 space-y-2">
                   {tools.map((t) => (
-                    <li key={t.name}>
-                      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text)', marginBottom: 2 }}>{t.name}</p>
-                      <p style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>{t.description}</p>
+                    <li key={t.name} className="text-xs">
+                      <p className="font-mono text-[var(--color-accent)]">{t.name}</p>
+                      <p className="text-[var(--color-text-muted)] mt-0.5 leading-relaxed">
+                        {t.description}
+                      </p>
                     </li>
                   ))}
                 </ul>
               </details>
-            </div>
+            </section>
 
-            {/* Data browser */}
             <DataBrowser />
 
-            {/* Sample prompts */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <SectionLabel>Try asking</SectionLabel>
+            <section className="mb-6 p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
+              <div className="flex items-center gap-2 mb-3">
+                <p className="text-xs font-mono uppercase tracking-widest text-[var(--color-text-muted)]">
+                  try asking
+                </p>
                 <InfoTooltip>
-                  <strong>Sample prompts.</strong> Designed to trigger different agent behaviors — single tool call, multiple sequential calls, and composed answers. Watch the agent loop unfold below.
+                  <strong>Sample prompts.</strong> These are designed to trigger different agent
+                  behaviors &mdash; single tool call, multiple sequential calls, and composed
+                  answers. Watch how the agent loop unfolds in the conversation below.
                 </InfoTooltip>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="flex flex-wrap gap-2">
                 {SAMPLE_PROMPTS.map((p) => (
                   <button
                     key={p}
                     onClick={() => setQuestion(p)}
                     disabled={!canAsk}
-                    style={{
-                      padding: '6px 10px', border: '1px solid var(--color-border)', borderRadius: 4,
-                      fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-muted)',
-                      background: 'none', cursor: canAsk ? 'pointer' : 'not-allowed',
-                      opacity: canAsk ? 1 : 0.5, textAlign: 'left',
-                    }}
+                    className="px-3 py-1.5 text-xs font-mono rounded border border-[var(--color-border)] hover:border-[var(--color-accent)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-left"
                   >
                     {p}
                   </button>
                 ))}
               </div>
-            </div>
+            </section>
 
-            {/* Agent loop */}
             {exchanges.length > 0 && (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <SectionLabel>Agent loop</SectionLabel>
+              <section className="mb-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-mono uppercase tracking-widest text-[var(--color-text-muted)]">
+                      Agent loop
+                    </h2>
                     <InfoTooltip>
-                      <strong>Agent loop.</strong> Each exchange may take multiple turns: Claude calls tools, we execute them, return results, and Claude decides whether to call more tools or produce a final answer.
+                      <strong>Agent loop.</strong> Each exchange may take multiple turns: Claude
+                      calls tools, we execute them, return results, and Claude decides whether
+                      to call more tools or produce a final answer. Each turn is shown below in
+                      order. <em>thinking</em> means Claude is processing; tool calls show input
+                      (what Claude asked for) and output (what the MCP server returned).
                     </InfoTooltip>
                   </div>
                   <button
                     onClick={clearChat}
-                    style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-faint)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 14 }}
+                    className="text-xs font-mono text-[var(--color-text-muted)] hover:text-red-400 transition-colors"
                   >
-                    clear
+                    clear chat
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {exchanges.map((ex) => (
-                    <div key={ex.id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {/* Question */}
-                      <div style={{ padding: '11px 14px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 5 }}>
-                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-faint)', marginBottom: 4 }}>you asked</p>
-                        <p style={{ fontSize: 12, color: 'var(--color-text)' }}>{ex.question}</p>
-                      </div>
-
-                      {ex.steps.map((step, i) => <StepView key={i} step={step} />)}
-
-                      {ex.error && (
-                        <div style={{ padding: '10px 12px', borderRadius: 5, border: '1px solid oklch(65% 0.18 25 / 40%)', background: 'oklch(65% 0.18 25 / 5%)' }}>
-                          <p style={{ fontSize: 12, color: 'oklch(65% 0.18 25)', lineHeight: 1.5 }}>{ex.error}</p>
-                        </div>
-                      )}
-
-                      {ex.isRunning && ex.steps.length === 0 && (
-                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-muted)', paddingLeft: 14 }}>starting agent…</p>
-                      )}
+                {exchanges.map((ex) => (
+                  <div key={ex.id} className="space-y-3">
+                    <div className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]">
+                      <p className="text-xs font-mono text-[var(--color-text-muted)] mb-2">
+                        you asked
+                      </p>
+                      <p className="text-sm leading-relaxed">{ex.question}</p>
                     </div>
-                  ))}
-                  <div ref={chatEndRef} />
-                </div>
-              </div>
+
+                    {ex.steps.map((step, i) => (
+                      <StepView key={i} step={step} />
+                    ))}
+
+                    {ex.error && (
+                      <div className="p-3 rounded-lg border border-red-500/40 bg-red-500/5">
+                        <p className="text-sm text-red-400 leading-relaxed">{ex.error}</p>
+                      </div>
+                    )}
+
+                    {ex.isRunning && ex.steps.length === 0 && (
+                      <p className="text-xs font-mono text-[var(--color-accent)] animate-pulse pl-4">
+                        starting agent...
+                      </p>
+                    )}
+                  </div>
+                ))}
+                <div ref={chatEndRef} />
+              </section>
             )}
 
-            {/* Input */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{
-                flex: 1, height: 38, borderRadius: 6, border: '1px solid var(--color-border)',
-                background: 'var(--color-surface)', display: 'flex', alignItems: 'center', padding: '0 14px',
-                opacity: canAsk ? 1 : 0.5,
-              }}>
+            <section>
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
-                  placeholder={isActive ? 'agent is running…' : 'ask Claude something about the CRM…'}
+                  placeholder={
+                    isActive
+                      ? 'Agent is running...'
+                      : 'Ask Claude something about the CRM...'
+                  }
                   disabled={!canAsk}
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text)' }}
+                  className="flex-1 px-4 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-50"
                 />
+                <button
+                  onClick={handleAsk}
+                  disabled={!question.trim() || !canAsk}
+                  className="px-4 py-2 rounded-lg bg-[var(--color-accent)] text-[var(--color-bg)] font-mono text-sm hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ask
+                </button>
               </div>
-              <button
-                onClick={handleAsk}
-                disabled={!question.trim() || !canAsk}
-                style={{
-                  height: 38, padding: '0 16px', borderRadius: 6,
-                  background: 'var(--color-text)', border: 'none', cursor: 'pointer',
-                  fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-bg)', fontWeight: 500,
-                  opacity: !question.trim() || !canAsk ? 0.4 : 1,
-                }}
-              >
-                ask
-              </button>
-            </div>
+            </section>
           </>
         )}
       </div>
 
-      </div>
-    </div>
+      {showKeyDialog && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center px-6 z-50">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-2">Anthropic API key</h3>
+            <p className="text-sm text-[var(--color-text-muted)] mb-4 leading-relaxed">
+              Needed for Claude to decide which tools to call. Your key is stored in localStorage
+              and sent directly to api.anthropic.com &mdash; never to any third-party server.
+            </p>
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              placeholder="sk-ant-..."
+              className="w-full px-3 py-2 mb-4 rounded border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] font-mono text-sm focus:outline-none focus:border-[var(--color-accent)]"
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShowKeyDialog(false)
+                  setKeyInput('')
+                }}
+                className="px-3 py-1.5 text-sm font-mono text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              >
+                cancel
+              </button>
+              <button
+                onClick={handleSaveKey}
+                className="px-3 py-1.5 rounded bg-[var(--color-accent)] text-[var(--color-bg)] font-mono text-sm hover:bg-[var(--color-accent-hover)]"
+              >
+                save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
   )
 }
-
-// ── Step renderer ─────────────────────────────────────────────────────────────
 
 function StepView({ step }: { step: AgentStep }) {
   if (step.kind === 'thinking') {
     return (
-      <div style={{ paddingLeft: 14 }}>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-muted)' }}>
-          turn {step.turn} · thinking…
+      <div className="pl-4 py-1">
+        <p className="text-xs font-mono text-[var(--color-accent)] animate-pulse">
+          turn {step.turn} &middot; thinking...
         </p>
       </div>
     )
@@ -301,9 +311,11 @@ function StepView({ step }: { step: AgentStep }) {
 
   if (step.kind === 'text') {
     return (
-      <div style={{ padding: '11px 14px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 5 }}>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-faint)', marginBottom: 4 }}>turn {step.turn} · claude</p>
-        <p style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{step.text}</p>
+      <div className="p-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <p className="text-xs font-mono text-[var(--color-text-muted)] mb-2">
+          turn {step.turn} &middot; claude
+        </p>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">{step.text}</p>
       </div>
     )
   }
@@ -312,24 +324,41 @@ function StepView({ step }: { step: AgentStep }) {
   const errored = step.isError === true
 
   return (
-    <div style={{
-      padding: '11px 14px', background: 'var(--color-surface)', borderRadius: 5,
-      border: `1px solid ${errored ? 'oklch(65% 0.18 25 / 40%)' : running ? 'var(--color-text-muted)' : 'var(--color-border)'}`,
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-faint)' }}>turn {step.turn} · tool call</p>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: errored ? 'oklch(65% 0.18 25)' : 'var(--color-text-muted)' }}>
-          {running ? 'running…' : errored ? 'error' : 'ok'}
+    <div
+      className={`p-4 rounded-lg border bg-[var(--color-surface)] ${
+        errored
+          ? 'border-red-500/40'
+          : running
+            ? 'border-[var(--color-accent)]/40'
+            : 'border-[var(--color-border)]'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <p className="text-xs font-mono text-[var(--color-text-muted)]">
+          turn {step.turn} &middot; tool call
+        </p>
+        <span
+          className={`text-xs font-mono ${
+            errored
+              ? 'text-red-400'
+              : running
+                ? 'text-[var(--color-accent)] animate-pulse'
+                : 'text-[var(--color-text-muted)]'
+          }`}
+        >
+          {running ? 'running...' : errored ? 'error' : 'ok'}
         </span>
       </div>
-      <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text)', marginBottom: 5 }}>{step.name}</p>
-      <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-faint)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>
+
+      <p className="text-sm font-mono text-[var(--color-accent)] mb-1">{step.name}</p>
+      <pre className="text-xs font-mono text-[var(--color-text-muted)] mb-2 whitespace-pre-wrap break-all">
         input: {JSON.stringify(step.input, null, 2)}
       </pre>
+
       {step.output !== null && (
         <>
-          <div style={{ height: 1, background: 'var(--color-border)', margin: '7px 0' }} />
-          <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-muted)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }}>
+          <div className="h-px bg-[var(--color-border)] my-2" />
+          <pre className="text-xs font-mono text-[var(--color-text)] whitespace-pre-wrap break-all">
             {step.output}
           </pre>
         </>
