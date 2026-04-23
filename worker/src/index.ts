@@ -1,6 +1,8 @@
 const ALLOWED_ORIGINS = [
   'https://bkaanp.github.io',
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
   'http://localhost:4173',
   'http://localhost:3000',
 ]
@@ -22,12 +24,12 @@ function checkRateLimit(ip: string): boolean {
   return true
 }
 
-function corsHeaders(origin: string | null) {
+function corsHeaders(origin: string | null, requestedHeaders?: string | null) {
   const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, anthropic-version, x-api-key',
+    'Access-Control-Allow-Headers': requestedHeaders ?? 'Content-Type, anthropic-version, x-api-key',
   }
 }
 
@@ -41,7 +43,8 @@ export default {
     const headers = corsHeaders(origin)
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers })
+      const requestedHeaders = request.headers.get('Access-Control-Request-Headers')
+      return new Response(null, { status: 204, headers: corsHeaders(origin, requestedHeaders) })
     }
 
     const url = new URL(request.url)

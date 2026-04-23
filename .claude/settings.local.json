@@ -17,7 +17,8 @@
       "Bash(node ./node_modules/.bin/tsc --noEmit -p apps/image-search/tsconfig.json)",
       "Bash(node ./node_modules/.bin/tsc --noEmit -p apps/rag/tsconfig.json)",
       "Bash(node ./node_modules/.bin/tsc --noEmit -p apps/mcp-client/tsconfig.json)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(npx wrangler *)"
     ]
   }
 }
