@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f1ea">
+<meta name="robots" content="noindex">
+<title>Helpdesk · First Level</title>
+<style>
+  :root {
+    --bg: #f4f1ea; --card: #fffdf8; --ink: #1c1b18; --dim: #6b675d; --faint: #a8a396; --line: #e2ddd0;
+    --accent: #0f6b5c; --accent-ink: #ffffff; --soft: #e3efe9; --warn: #b4540a; --warn-soft: #fbeedd; --err: #b3261e; --err-soft: #fbe9e7;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); display: flex; flex-direction: column; overflow: hidden; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .hide { display: none !important; }
+  .label { font: 600 10.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+
+  header { display: flex; align-items: center; gap: 12px; padding: calc(env(safe-area-inset-top) + 10px) 16px 10px; border-bottom: 1px solid var(--line); background: var(--card); flex: none; }
+  .brand { font-weight: 700; font-size: 15px; white-space: nowrap; display: flex; align-items: center; gap: 9px; }
+  .brand i { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); display: grid; place-items: center; }
+  .brand i::after { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 2px solid #fff; }
+  .brand small { font: 600 10.5px/1 var(--mono); letter-spacing: .1em; color: var(--dim); text-transform: uppercase; }
+  #pill { margin-left: 4px; padding: 6px 10px; border-radius: 20px; background: var(--bg); border: 1px solid var(--line); font: 600 11px/1 var(--mono); letter-spacing: .05em; color: var(--dim); display: flex; align-items: center; gap: 7px; min-width: 0; }
+  #pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
+  body[data-state="busy"] #pill i { background: var(--warn); animation: pulse 1s ease-in-out infinite; }
+  body[data-state="watch"] #pill i { background: var(--accent); animation: pulse 1.6s ease-in-out infinite; }
+  body[data-state="solved"] #pill i { background: var(--accent); }
+  body[data-state="esc"] #pill i { background: var(--err); }
+  @keyframes pulse { 50% { opacity: .25; } }
+  .spacer { flex: 1; }
+  .btn { height: 36px; padding: 0 14px; border-radius: 9px; border: 1px solid var(--line); background: var(--card); font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+  .btn:hover { border-color: var(--faint); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.danger { color: var(--err); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.icon { width: 36px; padding: 0; display: grid; place-items: center; }
+  .btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr); }
+  #left { padding: 16px; display: flex; flex-direction: column; gap: 14px; min-height: 0; min-width: 0; border-right: 1px solid var(--line); }
+  #screenBox { position: relative; flex: 1; min-height: 0; border-radius: 14px; background: #15171a; overflow: hidden; display: grid; place-items: center; }
+  #scr { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; color: #d9d5ca; }
+  #empty h2 { font-size: 20px; margin: 0; color: #fff; }
+  #empty p { margin: 0; max-width: 40ch; color: #a9a59a; font-size: 14px; }
+  #empty .btn.primary { height: 46px; padding: 0 22px; font-size: 15px; border-radius: 23px; }
+  #badge { position: absolute; left: 12px; top: 12px; padding: 6px 10px; border-radius: 20px; background: rgba(15,107,92,.92); color: #fff; font: 600 10.5px/1 var(--mono); letter-spacing: .1em; display: flex; gap: 7px; align-items: center; }
+  #badge i { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: pulse 1.6s ease-in-out infinite; }
+  #stopShare { position: absolute; right: 12px; top: 10px; background: rgba(0,0,0,.6); border-color: rgba(255,255,255,.25); color: #fff; height: 32px; }
+  #stepsBox { flex: none; max-height: 34%; overflow-y: auto; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+  #steps { list-style: none; margin: 8px 0 0; padding: 0; }
+  #steps li { display: flex; gap: 10px; padding: 5px 0; font-size: 14px; color: var(--dim); }
+  #steps li::before { content: "✓"; color: var(--accent); font-weight: 700; flex: none; }
+  #steps li:last-child { color: var(--ink); }
+  #steps li.now::before { content: "→"; color: var(--warn); }
+  #stepsEmpty { margin: 8px 0 0; font-size: 13.5px; color: var(--faint); }
+
+  #chat { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--card); }
+  #log { flex: 1; overflow-y: auto; padding: 18px 16px 8px; display: flex; flex-direction: column; gap: 10px; }
+  .msg, .card { flex: none; }
+  .msg { max-width: 88%; padding: 10px 13px; border-radius: 14px; white-space: pre-wrap; word-wrap: break-word; font-size: 15px; line-height: 1.45; }
+  .msg.ai { align-self: flex-start; background: var(--bg); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg.me { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.me img { display: block; max-width: 160px; max-height: 100px; border-radius: 8px; margin-bottom: 7px; border: 1px solid rgba(255,255,255,.35); }
+  .msg.note { align-self: center; max-width: 100%; background: none; padding: 2px 8px; text-align: center; font: 600 10.5px/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+  .msg.err { align-self: stretch; max-width: 100%; background: var(--err-soft); color: var(--err); font-size: 13.5px; }
+  .msg.live::after { content: ""; display: inline-block; width: 6px; height: 1em; margin-left: 3px; vertical-align: -2px; background: var(--accent); animation: pulse .9s steps(2) infinite; }
+  .card { align-self: stretch; border-radius: 14px; border: 1px solid var(--line); background: var(--card); overflow: hidden; }
+  .card .head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--warn-soft); color: var(--warn); font: 700 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+  .card.ok .head { background: var(--soft); color: var(--accent); }
+  .card pre { margin: 0; padding: 14px; white-space: pre-wrap; word-wrap: break-word; font: 13.5px/1.55 var(--sans); }
+  .card .acts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 14px; }
+  .card p { margin: 0; padding: 12px 14px; font-size: 14px; }
+
+  #chips { display: flex; flex-wrap: wrap; gap: 7px; padding: 4px 16px 10px; }
+  #chips button { border: 1px solid var(--line); background: var(--bg); border-radius: 18px; padding: 7px 12px; font-size: 13.5px; text-align: left; max-width: 100%; }
+  #chips button:hover { border-color: var(--accent); color: var(--accent); }
+  #attachRow { display: flex; align-items: center; gap: 10px; padding: 0 16px 8px; font-size: 13px; color: var(--dim); }
+  #attachRow img { height: 44px; border-radius: 6px; border: 1px solid var(--line); }
+  #attachRow button { border: 0; background: none; color: var(--err); font-size: 13px; text-decoration: underline; padding: 0; }
+  #composer { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px calc(env(safe-area-inset-bottom) + 12px); border-top: 1px solid var(--line); }
+  #input { flex: 1; min-height: 44px; max-height: 140px; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 16px; line-height: 1.4; background: #fff; outline: none; }
+  #input:focus { border-color: var(--accent); }
+  #composer .btn { height: 44px; }
+  #composer .btn.icon { width: 44px; }
+  #mic.on { background: var(--err); border-color: var(--err); color: #fff; animation: pulse 1.2s ease-in-out infinite; }
+
+  #sheet { position: fixed; inset: 0; z-index: 10; display: none; background: rgba(28,27,24,.45); align-items: center; justify-content: center; padding: 16px; }
+  #sheet.open { display: flex; }
+  #panel { width: min(520px, 100%); max-height: 100%; overflow-y: auto; background: var(--card); border-radius: 18px; padding: 22px 20px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  #panel h2 { margin: 0 0 4px; font-size: 19px; }
+  #panel p.lead { margin: 0 0 6px; color: var(--dim); font-size: 13.5px; }
+  #panel label { display: block; margin: 16px 0 6px; font: 600 10.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+  #panel input[type=text], #panel input[type=password], #panel input[type=url], #panel select, #panel textarea { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; font-size: 16px; background: #fff; outline: none; }
+  #panel textarea { min-height: 96px; resize: vertical; font-size: 14px; line-height: 1.45; }
+  #panel input:focus, #panel select:focus, #panel textarea:focus { border-color: var(--accent); }
+  .note2 { font-size: 12.5px; color: var(--dim); margin: 6px 0 0; }
+  .note2 a { color: var(--accent); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .row.first { border-top: 1px solid var(--line); margin-top: 18px; }
+  .row small { display: block; color: var(--dim); font-size: 12.5px; }
+  .row input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+  #panel .foot { display: flex; gap: 10px; margin-top: 20px; }
+  #panel .foot .btn { height: 44px; flex: 1; }
+  #wipe { display: block; margin: 12px auto 0; border: 0; background: none; color: var(--dim); font-size: 12.5px; text-decoration: underline; }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    header { gap: 8px; padding-left: 12px; padding-right: 12px; }
+    header .spacer { display: none; }
+    #pill { flex: 1; margin-left: 0; }
+    #left { border-right: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; }
+    #screenBox { flex: none; height: 30vh; }
+    body:not(.sharing) #screenBox { height: auto; background: none; }
+    body:not(.sharing) #empty { position: static; padding: 4px; color: var(--dim); gap: 8px; }
+    body:not(.sharing) #empty h2 { display: none; }
+    body:not(.sharing) #empty p { color: var(--dim); font-size: 13px; max-width: none; }
+    #stepsBox { display: none; }
+    header .btn.wide span { display: none; }
+    .brand small, .brand b { display: none; }
+    .msg { max-width: 94%; }
+  }
+</style>
+</head>
+<body data-state="idle">
+
+<header>
+  <div class="brand"><i></i><b>Helpdesk</b> <small>First Level · KI</small></div>
+  <div id="pill"><i></i><span id="pillText">Bereit</span></div>
+  <div class="spacer"></div>
+  <button class="btn wide" id="handover" disabled title="Fall an den Second Level übergeben"><span>Übergabe an </span>2nd Level</button>
+  <button class="btn wide" id="reset" title="Neuen Fall beginnen">Neu<span>er Fall</span></button>
+  <button class="btn icon" id="gear" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
+</header>
+
+<main>
+  <section id="left">
+    <div id="screenBox">
+      <video id="scr" playsinline muted autoplay class="hide"></video>
+      <div id="empty">
+        <h2>Support-Sitzung starten</h2>
+        <p id="emptyText">Teile deinen Bildschirm oder nur das Fenster mit dem Problem. Die KI schaut mit und führt dich Schritt für Schritt. Sie kann nichts anklicken oder verändern.</p>
+        <button class="btn primary" id="share">Bildschirm teilen</button>
+      </div>
+      <div id="badge" class="hide"><i></i>KI SCHAUT MIT</div>
+      <button class="btn hide" id="stopShare">Freigabe beenden</button>
+    </div>
+    <div id="stepsBox">
+      <div class="label">Bisher geprüft</div>
+      <p id="stepsEmpty">Noch keine Schritte.</p>
+      <ul id="steps"></ul>
+    </div>
+  </section>
+
+  <section id="chat">
+    <div id="log"></div>
+    <div id="chips"></div>
+    <div id="attachRow" class="hide"><img id="attachImg" alt=""><span>Bild hängt an der nächsten Nachricht</span><button id="attachDel">entfernen</button></div>
+    <form id="composer">
+      <button type="button" class="btn icon" id="attach" title="Screenshot oder Foto anhängen"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg></button>
+      <button type="button" class="btn icon hide" id="mic" title="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <textarea id="input" rows="1" placeholder="Beschreib dein Problem …"></textarea>
+      <button class="btn primary" id="send">Senden</button>
+    </form>
+    <input type="file" id="file" accept="image/*" class="hide">
+  </section>
+</main>
+
+<div id="sheet">
+  <div id="panel">
+    <h2>Einstellungen</h2>
+    <p class="lead">Screenshots gehen direkt von diesem Browser an den gewählten Anbieter. Der Schlüssel wird nur hier im Browser gespeichert.</p>
+    <label for="provider">Modell-Anbieter</label>
+    <select id="provider">
+      <option value="anthropic">Anthropic Claude</option>
+      <option value="gemini">Google Gemini</option>
+      <option value="openai">Eigener Endpunkt (OpenAI-kompatibel)</option>
+    </select>
+    <div id="baseWrap" class="hide">
+      <label for="base">Basis-URL</label>
+      <input id="base" type="url" autocomplete="off" spellcheck="false" placeholder="https://…/v1">
+    </div>
+    <label for="key">API-Schlüssel</label>
+    <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="hier einfügen">
+    <p class="note2" id="keyNote"></p>
+    <label for="model">Modell</label>
+    <input id="model" type="text" autocomplete="off" spellcheck="false">
+    <label for="kb">Firmenwissen und Hausregeln (optional)</label>
+    <textarea id="kb" placeholder="z. B. „VPN-Client heißt GlobalProtect, Portal vpn.firma.de“ · „Drucker im 2. OG: FollowMe-Queue“ · „Passwort-Reset nur über den Second Level“"></textarea>
+    <div class="row first"><div>Automatisch mitschauen<small>Nach jedem Schritt selbst prüfen, sobald sich der Bildschirm ändert</small></div><input type="checkbox" id="autoWatch"></div>
+    <div class="row"><div>Antworten vorlesen<small>Wie am Telefon, mit der Stimme des Geräts</small></div><input type="checkbox" id="speak"></div>
+    <div class="foot"><button class="btn" id="cancel">Abbrechen</button><button class="btn primary" id="save">Speichern</button></div>
+    <button id="wipe">Schlüssel und Einstellungen löschen</button>
+  </div>
+</div>
+
+<canvas id="grab" class="hide"></canvas>
+<canvas id="grid" class="hide" width="64" height="36"></canvas>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const STORE = 'helpdesk.v1';
+  const DEFAULT_MODEL = { anthropic: 'claude-sonnet-5-5', gemini: 'gemini-flash-latest', openai: '' };
+  const KEY_NOTE = {
+    anthropic: 'Schlüssel erstellen: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>',
+    gemini: 'Kostenlosen Schlüssel holen: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>',
+    openai: 'Bei lokalen Modellen ohne Schlüssel einfach leer lassen.'
+  };
+  const LONG_SIDE = 1568, KEEP_IMAGES = 2, AUTO_MAX = 6, AUTO_GAP = 4500;
+  const EXAMPLES = ['WLAN ist verbunden, aber ich komme nicht ins Internet', 'Mein Drucker druckt nicht', 'Outlook lässt sich nicht öffnen', 'Ich bekomme diese Fehlermeldung und weiß nicht weiter'];
+  const GREETING = 'Hallo, hier ist der IT-Support. Was funktioniert gerade nicht? ' + (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia ? 'Wenn du deinen Bildschirm teilst, sehe ich direkt, was du siehst.' : 'Häng gern einen Screenshot oder ein Foto an, dann sehe ich, was du siehst.');
+
+  const defaults = { provider: 'anthropic', keys: {}, models: {}, base: '', kb: '', autoWatch: true, speak: false };
+  let cfg = load();
+  function load() {
+    let own = null, other = null;
+    try { own = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) {}
+    if (own) return Object.assign({}, defaults, own);
+    try { other = JSON.parse(localStorage.getItem('liveblick.v1') || 'null'); } catch (e) {}
+    const c = Object.assign({}, defaults, { keys: {}, models: {} });
+    if (other && other.keys) {
+      c.keys = Object.assign({}, other.keys); c.base = other.base || '';
+      if (other.models && other.models.openai) c.models.openai = other.models.openai;
+      if (!c.keys.anthropic && c.keys[other.provider]) c.provider = other.provider;
+    }
+    return c;
+  }
+  function persist() { try { localStorage.setItem(STORE, JSON.stringify(cfg)); } catch (e) {} }
+  const keyOf = () => (cfg.keys[cfg.provider] || '').trim();
+  const modelOf = () => (cfg.models[cfg.provider] || DEFAULT_MODEL[cfg.provider] || '').trim();
+  const configured = () => cfg.provider === 'openai' ? !!(cfg.base.trim() && modelOf()) : !!keyOf();
+
+  const scr = $('scr'), log = $('log'), input = $('input'), grab = $('grab'), grid = $('grid');
+  let stream = null, busy = false, abort = null, geminiLow = true;
+  let history = [], lastShot = null, attachment = null, caseState = 'idle';
+  let armed = false, ref = null, prev = null, stable = 0, autoCount = 0, lastReplyAt = 0;
+
+  /* ---------- Anzeige ---------- */
+  function setState(state, text) { document.body.dataset.state = state; $('pillText').textContent = text; }
+  function refreshState() {
+    if (busy) return setState('busy', 'KI antwortet …');
+    if (caseState === 'geloest') return setState('solved', 'Gelöst');
+    if (caseState === 'eskalation') return setState('esc', 'Übergabe an 2nd Level');
+    if (armed && stream && cfg.autoWatch) return setState('watch', 'Schaut mit · wartet auf Veränderung');
+    if (caseState === 'frage') return setState('idle', 'Wartet auf deine Antwort');
+    if (caseState === 'schritt') return setState('idle', 'Wartet auf deine Rückmeldung');
+    setState('idle', stream ? 'Bildschirm geteilt' : 'Bereit');
+  }
+  function scrollDown() { log.scrollTop = log.scrollHeight; }
+  function addMsg(kind, text, img) {
+    const el = document.createElement('div');
+    el.className = 'msg ' + kind;
+    if (img) { const i = document.createElement('img'); i.src = 'data:image/jpeg;base64,' + img; i.alt = 'Angehängter Screenshot'; el.appendChild(i); }
+    el.appendChild(document.createTextNode(text || ''));
+    log.appendChild(el); scrollDown();
+    return el;
+  }
+  function setText(el, text) { el.lastChild.nodeValue = text; scrollDown(); }
+  function renderChips() {
+    const box = $('chips'); box.innerHTML = '';
+    if (history.length) return;
+    EXAMPLES.forEach(t => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.onclick = () => { input.value = t; submit(); }; box.appendChild(b); });
+  }
+  function addStep(text) {
+    $('stepsEmpty').classList.add('hide');
+    [...$('steps').children].forEach(li => li.classList.remove('now'));
+    const li = document.createElement('li'); li.textContent = text; li.className = 'now';
+    $('steps').appendChild(li); $('stepsBox').scrollTop = $('stepsBox').scrollHeight;
+  }
+  function settleSteps() { [...$('steps').children].forEach(li => li.classList.remove('now')); }
+
+  /* ---------- Bildschirm ---------- */
+  const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+  if (!canShare) {
+    $('share').classList.add('hide');
+    $('emptyText').textContent = 'Dieser Browser kann den Bildschirm nicht teilen (das geht nur am Desktop). Häng stattdessen unten einen Screenshot oder ein Foto an.';
+  }
+  async function share() {
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 5 } }, audio: false });
+    } catch (e) {
+      if (e && e.name !== 'NotAllowedError' && e.name !== 'AbortError') addMsg('err', 'Die Bildschirmfreigabe hat nicht geklappt: ' + (e.message || e.name));
+      return;
+    }
+    scr.srcObject = stream; scr.classList.remove('hide'); await scr.play().catch(() => {});
+    stream.getVideoTracks()[0].addEventListener('ended', stopShare);
+    document.body.classList.add('sharing');
+    $('empty').classList.add('hide'); $('badge').classList.remove('hide'); $('stopShare').classList.remove('hide');
+    addMsg('note', 'Bildschirm wird geteilt');
+    ref = prev = null; stable = 0;
+    refreshState();
+  }
+  function stopShare() {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = null; scr.srcObject = null; scr.classList.add('hide');
+    document.body.classList.remove('sharing');
+    $('empty').classList.remove('hide'); $('badge').classList.add('hide'); $('stopShare').classList.add('hide');
+    addMsg('note', 'Freigabe beendet');
+    refreshState();
+  }
+  function scaleToCanvas(src, w, h) {
+    const s = Math.min(1, LONG_SIDE / Math.max(w, h));
+    grab.width = Math.round(w * s); grab.height = Math.round(h * s);
+    grab.getContext('2d').drawImage(src, 0, 0, grab.width, grab.height);
+    return grab.toDataURL('image/jpeg', 0.82).split(',')[1];
+  }
+  function grabScreen() {
+    if (!stream || !scr.videoWidth) return null;
+    return scaleToCanvas(scr, scr.videoWidth, scr.videoHeight);
+  }
+  function sample() {
+    if (!stream || !scr.videoWidth) return null;
+    const c = grid.getContext('2d', { willReadFrequently: true });
+    c.drawImage(scr, 0, 0, 64, 36);
+    const px = c.getImageData(0, 0, 64, 36).data, g = new Uint8Array(2304);
+    for (let i = 0; i < 2304; i++) g[i] = (px[i * 4] * 3 + px[i * 4 + 1] * 6 + px[i * 4 + 2]) / 10;
+    return g;
+  }
+  function frac(a, b) { let n = 0; for (let i = 0; i < 2304; i++) if (Math.abs(a[i] - b[i]) > 20) n++; return n / 2304; }
+
+  /* Beobachter: meldet sich, wenn sich der Bildschirm nach einem Schritt geändert und wieder beruhigt hat */
+  setInterval(() => {
+    if (!stream || !armed || busy || !cfg.autoWatch) return;
+    const now = sample(); if (!now) return;
+    if (!ref) { ref = now; prev = now; stable = 0; return; }
+    stable = frac(now, prev) < 0.003 ? stable + 1 : 0;
+    prev = now;
+    if (input.value.trim() || attachment) return;
+    if (frac(now, ref) > 0.012 && stable >= 2 && Date.now() - lastReplyAt > AUTO_GAP) {
+      if (autoCount >= AUTO_MAX) {
+        armed = false; addMsg('note', 'Automatisches Mitschauen pausiert · schreib kurz, wie es jetzt aussieht'); refreshState(); return;
+      }
+      autoCount++;
+      turn(null, true);
+    }
+  }, 700);
+
+  /* ---------- Prompts ---------- */
+  function systemPrompt() {
+    return [
+      'Du bist die erste Anlaufstelle (First-Level-Support) eines IT-Helpdesks. Die Person, die sich meldet, hat meist kein IT-Fachwissen, zum Beispiel eine Mitarbeiterin im Sekretariat. Du hilfst bei Problemen mit Rechner, Programmen, Netzwerk, Druckern und Konten. Du siehst ihren Bildschirm über Screenshots, die an den Nachrichten hängen. Du kannst nur sehen und anleiten, nicht selbst klicken.',
+      '',
+      'Arbeitsweise:',
+      '- Lies zuerst den Screenshot genau: Betriebssystem, geöffnetes Programm, Fehlermeldungen im Wortlaut, auffällige Symbole. Stütze dich auf das, was wirklich zu sehen ist, und rate nicht. Wenn etwas nicht lesbar ist, sag das.',
+      '- Fehlt dir eine wichtige Information, stell genau eine gezielte Rückfrage. Hängt kein Screenshot an, bitte einmal darum, den Bildschirm zu teilen oder ein Bild anzuhängen, und hilf trotzdem weiter.',
+      '- Gib immer nur einen Schritt auf einmal. Beschreib ihn so, dass man ihn am Bildschirm findet: wo das Element ist (zum Beispiel unten rechts in der Taskleiste), wie es wörtlich heißt und was zu tun ist. Schaltflächen und Menünamen in „Anführungszeichen“.',
+      '- Nach einem Schritt bekommst du automatisch einen neuen Screenshot, sobald sich der Bildschirm verändert hat. Prüfe daran, ob der Schritt geklappt hat, bestätige das in einem halben Satz und gib den nächsten Schritt.',
+      '- Fang mit den einfachen, risikolosen Ursachen an und arbeite dich vor.',
+      '- Schreib kurz: höchstens vier Sätze, freundlich und ruhig, ohne Fachjargon, ohne Markdown, ohne Listen. Antworte in der Sprache der Person.',
+      '',
+      'Grenzen des First Level. In diesen Fällen löst du nicht selbst, sondern eskalierst:',
+      '- Verdacht auf Schadsoftware, Phishing, Datenabfluss oder ein übernommenes Konto. Sag der Person, dass sie nichts weiter anklicken soll.',
+      '- Vermuteter Hardwaredefekt, Risiko von Datenverlust, gesperrte Konten, fehlende Berechtigungen und alles, was Administratorrechte, Eingriffe in die Registry, eine Neuinstallation des Systems oder das Abschalten von Schutzsoftware verlangt.',
+      '- Drei Lösungsversuche ohne Erfolg, oder die Person möchte mit einem Menschen sprechen.',
+      'Frag nie nach Passwörtern, PINs oder Codes. Siehst du auf dem Bildschirm sensible Daten, die nichts mit dem Problem zu tun haben, weise einmal kurz darauf hin, dass man auch nur das betroffene Fenster teilen kann.',
+      '',
+      'Steuerzeilen: Beende jede Antwort mit Steuerzeilen in genau dieser Form, jede in einer eigenen Zeile. Die Person sieht sie nicht.',
+      '@@SCHRITT: <der Schritt, den du gerade angewiesen hast, in höchstens zehn Wörtern>   (nur wenn du einen Schritt angewiesen hast)',
+      '@@STATUS: <genau eines von: frage, schritt, geloest, eskalation, warten>',
+      'frage = du wartest auf eine Antwort der Person. schritt = du hast einen Schritt angewiesen und beobachtest den Bildschirm. geloest = die Person oder der Screenshot bestätigt, dass das Problem behoben ist. eskalation = Übergabe an den Second Level; sag der Person in einem Satz, warum, und dass du die Übergabe vorbereitest. warten = nur bei einer automatischen Beobachtung erlaubt, wenn der neue Screenshot keinen für den Fall bedeutsamen Fortschritt zeigt; dann besteht deine ganze Antwort aus der Zeile @@STATUS: warten.',
+      cfg.kb.trim() ? '\nFirmenwissen und Hausregeln (gehen allgemeinem Wissen vor):\n' + cfg.kb.trim() : ''
+    ].join('\n');
+  }
+  const TICKET_PROMPT = [
+    'Du dokumentierst einen Fall des First-Level-IT-Supports für das Ticketsystem. Grundlage sind das Gesprächsprotokoll und, falls vorhanden, der letzte Screenshot.',
+    'Schreib sachlich und knapp. Nimm nur auf, was aus Protokoll oder Screenshot hervorgeht; Unbekanntes nennst du „unbekannt“. Keine Passwörter und keine persönlichen Details, die für den Fall unnötig sind. Kein Markdown.',
+    'Halte genau dieses Format ein:',
+    'TITEL: <eine Zeile>',
+    'KATEGORIE: <Netzwerk | Hardware | Software | Konto und Zugriff | Drucker | Sicherheit | Sonstiges>',
+    'DRINGLICHKEIT: <niedrig | mittel | hoch> – <Begründung in einem Halbsatz>',
+    'STATUS: <gelöst im First Level | Übergabe an Second Level>',
+    '',
+    'PROBLEM',
+    '<zwei bis drei Sätze aus Sicht der meldenden Person>',
+    '',
+    'UMGEBUNG',
+    '<Betriebssystem, Programm, Fehlermeldung im Wortlaut, soweit erkennbar>',
+    '',
+    'BEREITS GEPRÜFT',
+    '- <Schritt und Ergebnis>',
+    '',
+    'BEFUND',
+    '<vermutete Ursache und wie sicher das ist>',
+    '',
+    'NÄCHSTER SCHRITT',
+    '<konkrete Empfehlung für den Second Level, oder bei gelösten Fällen: was die Lösung war>'
+  ].join('\n');
+
+  /* ---------- Modell-Aufrufe (Streaming) ---------- */
+  async function sse(res, onData) {
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).replace(/\r$/, ''); buf = buf.slice(nl + 1);
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+        let j; try { j = JSON.parse(data); } catch (e) { continue; }
+        onData(j);
+      }
+    }
+  }
+  async function fail(res) {
+    let detail = '';
+    try { const j = await res.json(); detail = (j.error && (j.error.message || j.error)) || j.message || ''; if (typeof detail !== 'string') detail = JSON.stringify(detail); } catch (e) {}
+    const err = new Error(detail || ('HTTP ' + res.status)); err.status = res.status; throw err;
+  }
+  const PROVIDERS = {
+    async anthropic(sys, msgs, onText, signal, maxTokens) {
+      const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal,
+        headers: { 'content-type': 'application/json', 'x-api-key': keyOf(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: modelOf(), max_tokens: maxTokens, stream: true, system: sys,
+          messages: msgs.map(m => ({ role: m.role, content: (m.img ? [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: m.img } }] : []).concat([{ type: 'text', text: m.text }]) })) }) });
+      if (!res.ok) await fail(res);
+      await sse(res, j => {
+        if (j.type === 'content_block_delta' && j.delta && j.delta.type === 'text_delta') onText(j.delta.text);
+        if (j.type === 'error') throw new Error((j.error && j.error.message) || 'Fehler im Stream');
+      });
+    },
+    async gemini(sys, msgs, onText, signal, maxTokens) {
+      const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelOf()) + ':streamGenerateContent?alt=sse';
+      const call = () => {
+        const generationConfig = { maxOutputTokens: maxTokens + 3000 };
+        if (geminiLow) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+        return fetch(url, { method: 'POST', signal, headers: { 'content-type': 'application/json', 'x-goog-api-key': keyOf() },
+          body: JSON.stringify({ systemInstruction: { parts: [{ text: sys }] }, generationConfig,
+            contents: msgs.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: (m.img ? [{ inlineData: { mimeType: 'image/jpeg', data: m.img } }] : []).concat([{ text: m.text }]) })) }) });
+      };
+      let res = await call();
+      if (res.status === 400 && geminiLow) { geminiLow = false; res = await call(); }
+      if (!res.ok) await fail(res);
+      await sse(res, j => {
+        const parts = (((j.candidates || [])[0] || {}).content || {}).parts || [];
+        for (const p of parts) if (p.text && !p.thought) onText(p.text);
+      });
+    },
+    async openai(sys, msgs, onText, signal) {
+      const headers = { 'content-type': 'application/json' };
+      if (keyOf()) headers.authorization = 'Bearer ' + keyOf();
+      const res = await fetch(cfg.base.trim().replace(/\/+$/, '') + '/chat/completions', { method: 'POST', signal, headers,
+        body: JSON.stringify({ model: modelOf(), stream: true, messages: [{ role: 'system', content: sys }].concat(msgs.map(m => m.img
+          ? { role: m.role, content: [{ type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + m.img } }, { type: 'text', text: m.text }] }
+          : { role: m.role, content: m.text })) }) });
+      if (!res.ok) await fail(res);
+      await sse(res, j => { const d = ((j.choices || [])[0] || {}).delta || {}; if (typeof d.content === 'string' && d.content) onText(d.content); });
+    }
+  };
+  function withImages(list) {
+    let keep = KEEP_IMAGES; const idx = new Set();
+    for (let i = list.length - 1; i >= 0 && keep > 0; i--) if (list[i].img) { idx.add(i); keep--; }
+    return list.map((m, i) => ({ role: m.role, text: m.text, img: idx.has(i) ? m.img : null }));
+  }
+  function explain(e) {
+    if (e.status === 401 || e.status === 403 || (e.status === 400 && /api.?key/i.test(e.message))) return 'Der Schlüssel wurde abgelehnt: ' + e.message;
+    if (e.status === 404) return 'Modell nicht gefunden: ' + e.message;
+    if (e.status === 429) return 'Limit des Anbieters erreicht. Bitte kurz warten und erneut senden.';
+    if (e instanceof TypeError) return 'Keine Verbindung zum Anbieter. Prüfe Internet und Einstellungen.';
+    return 'Fehler: ' + (e.message || 'unbekannt');
+  }
+
+  /* ---------- Antwort lesen ---------- */
+  function parse(raw) {
+    const lines = raw.replace(/\*\*/g, '').split('\n');
+    const visible = lines.filter(l => !l.trim().startsWith('@')).join('\n').trim();
+    const st = raw.match(/@@\s*STATUS\s*:\s*([a-zäöü]+)/i), sp = raw.match(/@@\s*SCHRITT\s*:\s*(.+)/i);
+    let status = st ? st[1].toLowerCase().replace('ö', 'oe') : '';
+    if (!['frage', 'schritt', 'geloest', 'eskalation', 'warten'].includes(status)) status = sp ? 'schritt' : 'frage';
+    return { visible, status, step: sp ? sp[1].trim().replace(/[.\s]+$/, '') : '' };
+  }
+
+  /* ---------- Ein Gesprächszug ---------- */
+  async function turn(text, auto) {
+    if (busy) return;
+    if (!configured()) { openSheet(); return; }
+    const img = auto ? grabScreen() : (attachment || grabScreen());
+    const fromFile = !auto && !!attachment;
+    if (auto && !img) return;
+    let body;
+    if (auto) body = '[Automatische Beobachtung: Der Bildschirm hat sich seit deinem letzten Schritt verändert und ist jetzt wieder ruhig. Neuer Screenshot hängt an. Die Person hat nichts geschrieben.]';
+    else body = text + '\n\n[' + (img ? (fromFile ? 'Die Person hat ein Bild angehängt.' : 'Aktueller Screenshot des geteilten Bildschirms hängt an.') : 'Kein Screenshot: Der Bildschirm wird gerade nicht geteilt.') + ']';
+    const userTurn = { role: 'user', text: body, img, auto: !!auto, shown: text };
+    if (!auto) { addMsg('me', text, fromFile ? img : null); clearAttachment(); autoCount = 0; $('chips').innerHTML = ''; }
+    if (img) lastShot = img;
+
+    busy = true; armed = false; refreshState(); $('send').disabled = true;
+    let raw = '', el = null, queued = false;
+    abort = new AbortController();
+    const draw = () => {
+      const v = parse(raw).visible;
+      if (!v) return;
+      if (!el) el = addMsg('ai live', '');
+      setText(el, v);
+    };
+    try {
+      await PROVIDERS[cfg.provider](systemPrompt(), withImages(history.concat([userTurn])), chunk => {
+        raw += chunk;
+        if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; draw(); }); }
+      }, abort.signal, 700);
+    } catch (e) {
+      busy = false; $('send').disabled = false;
+      if (el) el.remove();
+      if (e.name !== 'AbortError') {
+        addMsg('err', explain(e));
+        if (e.status === 401 || e.status === 403 || e.status === 404) openSheet();
+      }
+      refreshState();
+      return;
+    }
+    busy = false; $('send').disabled = false; lastReplyAt = Date.now();
+    const p = parse(raw);
+    if (auto && (p.status === 'warten' || !p.visible)) {
+      if (el) el.remove();
+      armed = true; ref = null; refreshState();
+      return;
+    }
+    if (!p.visible) { addMsg('err', 'Das Modell hat nichts geantwortet. Prüfe den Modellnamen in den Einstellungen.'); refreshState(); return; }
+    draw(); if (el) el.classList.remove('live');
+    if (auto) addMsgBefore(el, 'Bildschirm hat sich geändert · KI prüft');
+    history.push(userTurn, { role: 'assistant', text: raw.trim() });
+    for (let i = history.length - 1, keep = KEEP_IMAGES; i >= 0; i--) if (history[i].img && keep-- <= 0) history[i].img = null;
+    $('handover').disabled = false;
+    say(p.visible);
+    if (p.status === 'warten') p.status = 'frage';
+    caseState = p.status;
+    if (p.step) addStep(p.step);
+    if (p.status === 'schritt') { armed = true; ref = null; }
+    else settleSteps();
+    refreshState();
+    if (p.status === 'eskalation') ticket('eskalation');
+    if (p.status === 'geloest') solvedCard();
+  }
+  function addMsgBefore(el, text) {
+    const n = document.createElement('div'); n.className = 'msg note'; n.textContent = text;
+    log.insertBefore(n, el); scrollDown();
+  }
+
+  /* ---------- Ticket ---------- */
+  function transcript() {
+    return history.map(h => {
+      if (h.role === 'user') return h.auto ? 'SYSTEM: (Bildschirm hat sich verändert, neuer Screenshot)' : 'MELDENDE PERSON: ' + h.shown;
+      const p = parse(h.text);
+      return 'SUPPORT-KI: ' + p.visible + (p.step ? ' [Schritt: ' + p.step + ']' : '') + ' [Status: ' + p.status + ']';
+    }).join('\n');
+  }
+  function solvedCard() {
+    const c = document.createElement('div'); c.className = 'card ok';
+    c.innerHTML = '<div class="head">Problem gelöst</div><p>Soll ich den Fall kurz fürs Ticketsystem dokumentieren?</p><div class="acts"><button class="btn primary">Abschlussnotiz erstellen</button></div>';
+    c.querySelector('button').onclick = () => { c.remove(); ticket('geloest'); };
+    log.appendChild(c); scrollDown();
+  }
+  async function ticket(kind) {
+    if (busy || !history.length) return;
+    if (!configured()) { openSheet(); return; }
+    busy = true; armed = false; setState('busy', 'Schreibt die Übergabe …'); $('send').disabled = true;
+    const c = document.createElement('div'); c.className = 'card' + (kind === 'geloest' ? ' ok' : '');
+    c.innerHTML = '<div class="head"></div><pre></pre><div class="acts"></div>';
+    c.querySelector('.head').textContent = (kind === 'geloest' ? 'Abschlussnotiz' : 'Übergabe an Second Level') + ' · Entwurf · ' + new Date().toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+    const pre = c.querySelector('pre'); log.appendChild(c); scrollDown();
+    let raw = '';
+    const ask = 'Gesprächsprotokoll:\n' + transcript() + '\n\nAusgang: ' + (kind === 'geloest' ? 'Der Fall wurde im First Level gelöst.' : 'Der Fall wird an den Second Level übergeben.') + '\nSchreib jetzt den Ticket-Eintrag.';
+    abort = new AbortController();
+    try {
+      await PROVIDERS[cfg.provider](TICKET_PROMPT, [{ role: 'user', text: ask, img: lastShot }], chunk => { raw += chunk; pre.textContent = raw.replace(/\*\*/g, ''); scrollDown(); }, abort.signal, 1000);
+    } catch (e) {
+      busy = false; $('send').disabled = false; c.remove();
+      if (e.name !== 'AbortError') addMsg('err', explain(e));
+      refreshState(); return;
+    }
+    busy = false; $('send').disabled = false;
+    const text = raw.replace(/\*\*/g, '').trim(); pre.textContent = text;
+    const acts = c.querySelector('.acts');
+    const mk = (label, fn, primary) => { const b = document.createElement('button'); b.className = 'btn' + (primary ? ' primary' : ''); b.textContent = label; b.onclick = () => fn(b); acts.appendChild(b); };
+    mk('Text kopieren', async b => {
+      try { await navigator.clipboard.writeText(text); b.textContent = 'Kopiert'; }
+      catch (e) { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Markiert, bitte kopieren'; }
+      setTimeout(() => b.textContent = 'Text kopieren', 1800);
+    }, true);
+    mk('Als .txt speichern', () => download(new Blob([text], { type: 'text/plain;charset=utf-8' }), 'ticket-entwurf.txt'));
+    if (lastShot) mk('Letzten Screenshot speichern', () => fetch('data:image/jpeg;base64,' + lastShot).then(r => r.blob()).then(b => download(b, 'screenshot.jpg')));
+    refreshState(); scrollDown();
+  }
+  function download(blob, name) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+
+  /* ---------- Eingabe ---------- */
+  function submit() {
+    const text = input.value.trim();
+    if (!text && !attachment) return;
+    if (busy) return;
+    if (!configured()) { openSheet(); return; }
+    input.value = ''; autosize();
+    turn(text || 'Schau dir bitte dieses Bild an.', false);
+  }
+  function autosize() { input.style.height = 'auto'; input.style.height = Math.min(140, input.scrollHeight + 2) + 'px'; }
+  input.addEventListener('input', autosize);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !matchMedia('(pointer: coarse)').matches) { e.preventDefault(); submit(); } });
+  $('composer').addEventListener('submit', e => { e.preventDefault(); submit(); });
+  $('attach').onclick = () => $('file').click();
+  $('file').onchange = () => {
+    const f = $('file').files[0]; $('file').value = '';
+    if (!f) return;
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => { attachment = scaleToCanvas(im, im.naturalWidth, im.naturalHeight); URL.revokeObjectURL(url); $('attachImg').src = 'data:image/jpeg;base64,' + attachment; $('attachRow').classList.remove('hide'); };
+    im.onerror = () => { URL.revokeObjectURL(url); addMsg('err', 'Dieses Bild konnte nicht gelesen werden.'); };
+    im.src = url;
+  };
+  function clearAttachment() { attachment = null; $('attachRow').classList.add('hide'); }
+  $('attachDel').onclick = clearAttachment;
+
+  /* ---------- Sprache ---------- */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null;
+  if (SR) {
+    $('mic').classList.remove('hide');
+    $('mic').onclick = () => {
+      if (rec) { rec.stop(); return; }
+      if (window.speechSynthesis) speechSynthesis.cancel();
+      rec = new SR(); rec.lang = 'de-DE'; rec.interimResults = true; rec.continuous = false;
+      const before = input.value ? input.value.trim() + ' ' : '';
+      let final = '';
+      rec.onresult = e => { let t = ''; for (const r of e.results) t += r[0].transcript; input.value = before + t; autosize(); final = e.results[e.results.length - 1].isFinal ? t : ''; };
+      rec.onend = () => { $('mic').classList.remove('on'); rec = null; if (final.trim()) submit(); };
+      rec.onerror = e => { if (e.error === 'not-allowed') addMsg('err', 'Kein Zugriff aufs Mikrofon. Erlaube es für diese Seite oder tippe dein Anliegen.'); };
+      try { rec.start(); $('mic').classList.add('on'); } catch (e) { rec = null; }
+    };
+  }
+  function say(text) {
+    if (!cfg.speak || !window.speechSynthesis || !text) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.lang = 'de-DE'; u.rate = 1.05; speechSynthesis.speak(u);
+  }
+
+  /* ---------- Fall und Einstellungen ---------- */
+  function newCase() {
+    if (abort) abort.abort();
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    history = []; lastShot = null; caseState = 'idle'; armed = false; ref = null; autoCount = 0; busy = false;
+    log.innerHTML = ''; $('steps').innerHTML = ''; $('stepsEmpty').classList.remove('hide'); $('handover').disabled = true; $('send').disabled = false;
+    clearAttachment(); addMsg('ai', GREETING); renderChips(); refreshState();
+  }
+  let draft = null;
+  function fillProvider() {
+    const p = draft.provider;
+    $('provider').value = p; $('baseWrap').classList.toggle('hide', p !== 'openai'); $('base').value = draft.base || '';
+    $('key').value = draft.keys[p] || ''; $('keyNote').innerHTML = KEY_NOTE[p];
+    $('model').value = draft.models[p] || DEFAULT_MODEL[p]; $('model').placeholder = p === 'openai' ? 'Modellname' : DEFAULT_MODEL[p];
+  }
+  function readProvider() { const p = draft.provider; draft.keys[p] = $('key').value.trim(); draft.models[p] = $('model').value.trim(); draft.base = $('base').value.trim(); }
+  function openSheet() {
+    draft = JSON.parse(JSON.stringify(cfg)); fillProvider();
+    $('kb').value = draft.kb; $('autoWatch').checked = draft.autoWatch; $('speak').checked = draft.speak;
+    $('sheet').classList.add('open');
+  }
+  function closeSheet() { $('sheet').classList.remove('open'); draft = null; }
+  $('provider').onchange = () => { readProvider(); draft.provider = $('provider').value; fillProvider(); };
+  $('save').onclick = () => {
+    readProvider(); draft.kb = $('kb').value; draft.autoWatch = $('autoWatch').checked; draft.speak = $('speak').checked;
+    cfg = draft; persist(); geminiLow = true; closeSheet(); refreshState();
+  };
+  $('cancel').onclick = closeSheet;
+  $('wipe').onclick = () => { try { localStorage.removeItem(STORE); } catch (e) {} cfg = Object.assign({}, defaults, { keys: {}, models: {} }); openSheet(); };
+  $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeSheet(); });
+  $('gear').onclick = openSheet;
+  $('share').onclick = share;
+  $('stopShare').onclick = stopShare;
+  $('reset').onclick = newCase;
+  $('handover').onclick = () => { caseState = 'eskalation'; ticket('eskalation'); };
+
+  if (matchMedia('(max-width: 900px)').matches) input.placeholder = 'Dein Problem …';
+  newCase();
+  if (!configured()) openSheet();
+})();
+</script>
+</body>
+</html>
