@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f4f1ea">
-<meta name="robots" content="noindex">
 <title>Helpdesk · First Level</title>
 <style>
   :root {
@@ -176,22 +175,26 @@
 <div id="sheet">
   <div id="panel">
     <h2>Einstellungen</h2>
-    <p class="lead">Screenshots gehen direkt von diesem Browser an den gewählten Anbieter. Der Schlüssel wird nur hier im Browser gespeichert.</p>
+    <p class="lead">Im Demo-Zugang gehen die Screenshots über einen Proxy des Seitenbetreibers an Anthropic. Mit eigenem Schlüssel gehen sie direkt an den gewählten Anbieter; der Schlüssel bleibt in diesem Browser.</p>
     <label for="provider">Modell-Anbieter</label>
     <select id="provider">
-      <option value="anthropic">Anthropic Claude</option>
-      <option value="gemini">Google Gemini</option>
+      <option value="demo">Demo-Zugang (kein Schlüssel nötig)</option>
+      <option value="anthropic">Anthropic Claude (eigener Schlüssel)</option>
+      <option value="gemini">Google Gemini (eigener Schlüssel)</option>
       <option value="openai">Eigener Endpunkt (OpenAI-kompatibel)</option>
     </select>
+    <p class="note2 hide" id="demoNote">Läuft über den Zugang des Seitenbetreibers mit Claude Haiku, begrenzt auf rund 30 Anfragen pro Stunde. Für mehr wähle oben einen Anbieter mit eigenem Schlüssel.</p>
     <div id="baseWrap" class="hide">
       <label for="base">Basis-URL</label>
       <input id="base" type="url" autocomplete="off" spellcheck="false" placeholder="https://…/v1">
     </div>
+    <div id="ownWrap">
     <label for="key">API-Schlüssel</label>
     <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="hier einfügen">
     <p class="note2" id="keyNote"></p>
     <label for="model">Modell</label>
     <input id="model" type="text" autocomplete="off" spellcheck="false">
+    </div>
     <label for="kb">Firmenwissen und Hausregeln (optional)</label>
     <textarea id="kb" placeholder="z. B. „VPN-Client heißt GlobalProtect, Portal vpn.firma.de“ · „Drucker im 2. OG: FollowMe-Queue“ · „Passwort-Reset nur über den Second Level“"></textarea>
     <div class="row first"><div>Automatisch mitschauen<small>Nach jedem Schritt selbst prüfen, sobald sich der Bildschirm ändert</small></div><input type="checkbox" id="autoWatch"></div>
@@ -208,9 +211,13 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const STORE = 'helpdesk.v1';
-  const DEFAULT_MODEL = { anthropic: 'claude-sonnet-5-5', gemini: 'gemini-flash-latest', openai: '' };
+  const STORE = 'helpdesk.v2';
+  const PROXY_URL = 'https://bkaanp-proxy.batuhan-kaan-piskin.workers.dev/v1/messages';
+  const DEMO_MODEL = 'claude-haiku-5-5';
+  const LIMIT_MSG = 'Das Demo-Kontingent ist aufgebraucht (rund 30 Anfragen pro Stunde). In etwa einer Stunde geht es weiter, oder du trägst in den Einstellungen einen eigenen Schlüssel ein.';
+  const DEFAULT_MODEL = { demo: DEMO_MODEL, anthropic: 'claude-sonnet-5-5', gemini: 'gemini-flash-latest', openai: '' };
   const KEY_NOTE = {
+    demo: '',
     anthropic: 'Schlüssel erstellen: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>',
     gemini: 'Kostenlosen Schlüssel holen: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>',
     openai: 'Bei lokalen Modellen ohne Schlüssel einfach leer lassen.'
@@ -219,25 +226,21 @@
   const EXAMPLES = ['WLAN ist verbunden, aber ich komme nicht ins Internet', 'Mein Drucker druckt nicht', 'Outlook lässt sich nicht öffnen', 'Ich bekomme diese Fehlermeldung und weiß nicht weiter'];
   const GREETING = 'Hallo, hier ist der IT-Support. Was funktioniert gerade nicht? ' + (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia ? 'Wenn du deinen Bildschirm teilst, sehe ich direkt, was du siehst.' : 'Häng gern einen Screenshot oder ein Foto an, dann sehe ich, was du siehst.');
 
-  const defaults = { provider: 'anthropic', keys: {}, models: {}, base: '', kb: '', autoWatch: true, speak: false };
+  const defaults = { provider: 'demo', keys: {}, models: {}, base: '', kb: '', autoWatch: true, speak: false };
   let cfg = load();
   function load() {
-    let own = null, other = null;
-    try { own = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) {}
+    const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+    const own = read(STORE);
     if (own) return Object.assign({}, defaults, own);
-    try { other = JSON.parse(localStorage.getItem('liveblick.v1') || 'null'); } catch (e) {}
-    const c = Object.assign({}, defaults, { keys: {}, models: {} });
-    if (other && other.keys) {
-      c.keys = Object.assign({}, other.keys); c.base = other.base || '';
-      if (other.models && other.models.openai) c.models.openai = other.models.openai;
-      if (!c.keys.anthropic && c.keys[other.provider]) c.provider = other.provider;
-    }
-    return c;
+    // frühere Version oder Live-Blick: Schlüssel behalten, aber im Demo-Zugang starten
+    const old = read('helpdesk.v1') || read('liveblick.v2') || read('liveblick.v1') || {};
+    return Object.assign({}, defaults, { keys: Object.assign({}, old.keys), models: {}, base: old.base || '', kb: old.kb || '' });
   }
   function persist() { try { localStorage.setItem(STORE, JSON.stringify(cfg)); } catch (e) {} }
   const keyOf = () => (cfg.keys[cfg.provider] || '').trim();
-  const modelOf = () => (cfg.models[cfg.provider] || DEFAULT_MODEL[cfg.provider] || '').trim();
-  const configured = () => cfg.provider === 'openai' ? !!(cfg.base.trim() && modelOf()) : !!keyOf();
+  const isDemo = () => cfg.provider === 'demo';
+  const modelOf = () => isDemo() ? DEMO_MODEL : (cfg.models[cfg.provider] || DEFAULT_MODEL[cfg.provider] || '').trim();
+  const configured = () => isDemo() ? true : cfg.provider === 'openai' ? !!(cfg.base.trim() && modelOf()) : !!keyOf();
 
   const scr = $('scr'), log = $('log'), input = $('input'), grab = $('grab'), grid = $('grid');
   let stream = null, busy = false, abort = null, geminiLow = true;
@@ -420,9 +423,11 @@
     const err = new Error(detail || ('HTTP ' + res.status)); err.status = res.status; throw err;
   }
   const PROVIDERS = {
-    async anthropic(sys, msgs, onText, signal, maxTokens) {
-      const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal,
-        headers: { 'content-type': 'application/json', 'x-api-key': keyOf(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    demo(sys, msgs, onText, signal, maxTokens) { return PROVIDERS.anthropic(sys, msgs, onText, signal, maxTokens, true); },
+    async anthropic(sys, msgs, onText, signal, maxTokens, viaProxy) {
+      const res = await fetch(viaProxy ? PROXY_URL : 'https://api.anthropic.com/v1/messages', { method: 'POST', signal,
+        headers: viaProxy ? { 'content-type': 'application/json', 'anthropic-version': '2023-06-01' }
+          : { 'content-type': 'application/json', 'x-api-key': keyOf(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
         body: JSON.stringify({ model: modelOf(), max_tokens: maxTokens, stream: true, system: sys,
           messages: msgs.map(m => ({ role: m.role, content: (m.img ? [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: m.img } }] : []).concat([{ type: 'text', text: m.text }]) })) }) });
       if (!res.ok) await fail(res);
@@ -465,6 +470,8 @@
     return list.map((m, i) => ({ role: m.role, text: m.text, img: idx.has(i) ? m.img : null }));
   }
   function explain(e) {
+    if (isDemo() && e.status === 429) return LIMIT_MSG;
+    if (isDemo() && e.status) return 'Der Demo-Zugang ist gerade nicht verfügbar (' + (e.message || e.status) + '). Versuch es später noch einmal oder trag in den Einstellungen einen eigenen Schlüssel ein.';
     if (e.status === 401 || e.status === 403 || (e.status === 400 && /api.?key/i.test(e.message))) return 'Der Schlüssel wurde abgelehnt: ' + e.message;
     if (e.status === 404) return 'Modell nicht gefunden: ' + e.message;
     if (e.status === 429) return 'Limit des Anbieters erreicht. Bitte kurz warten und erneut senden.';
@@ -515,7 +522,7 @@
       if (el) el.remove();
       if (e.name !== 'AbortError') {
         addMsg('err', explain(e));
-        if (e.status === 401 || e.status === 403 || e.status === 404) openSheet();
+        if (!isDemo() && (e.status === 401 || e.status === 403 || e.status === 404)) openSheet();
       }
       refreshState();
       return;
@@ -658,10 +665,11 @@
   function fillProvider() {
     const p = draft.provider;
     $('provider').value = p; $('baseWrap').classList.toggle('hide', p !== 'openai'); $('base').value = draft.base || '';
+    $('ownWrap').classList.toggle('hide', p === 'demo'); $('demoNote').classList.toggle('hide', p !== 'demo');
     $('key').value = draft.keys[p] || ''; $('keyNote').innerHTML = KEY_NOTE[p];
     $('model').value = draft.models[p] || DEFAULT_MODEL[p]; $('model').placeholder = p === 'openai' ? 'Modellname' : DEFAULT_MODEL[p];
   }
-  function readProvider() { const p = draft.provider; draft.keys[p] = $('key').value.trim(); draft.models[p] = $('model').value.trim(); draft.base = $('base').value.trim(); }
+  function readProvider() { const p = draft.provider; if (p === 'demo') return; draft.keys[p] = $('key').value.trim(); draft.models[p] = $('model').value.trim(); draft.base = $('base').value.trim(); }
   function openSheet() {
     draft = JSON.parse(JSON.stringify(cfg)); fillProvider();
     $('kb').value = draft.kb; $('autoWatch').checked = draft.autoWatch; $('speak').checked = draft.speak;

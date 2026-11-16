@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#0b0c0e">
-<meta name="robots" content="noindex">
 <title>Live-Blick</title>
 <style>
   :root {
@@ -142,14 +141,17 @@
 <div id="sheet">
   <div id="panel">
     <h2>Einstellungen</h2>
-    <p class="lead">Bilder aus deiner Kamera gehen direkt von diesem Handy an den gewählten Anbieter. Der Schlüssel wird nur in diesem Browser gespeichert.</p>
+    <p class="lead">Im Demo-Zugang gehen die Kamerabilder über einen Proxy des Seitenbetreibers an Anthropic. Mit eigenem Schlüssel gehen sie direkt an den gewählten Anbieter; der Schlüssel bleibt in diesem Browser.</p>
 
     <label for="provider">Modell-Anbieter</label>
     <select id="provider">
-      <option value="gemini">Google Gemini</option>
-      <option value="anthropic">Anthropic Claude</option>
+      <option value="demo">Demo-Zugang (kein Schlüssel nötig)</option>
+      <option value="anthropic">Anthropic Claude (eigener Schlüssel)</option>
+      <option value="gemini">Google Gemini (eigener Schlüssel)</option>
       <option value="openai">Eigener Endpunkt (OpenAI-kompatibel)</option>
     </select>
+
+    <p class="note hide" id="demoNote">Läuft über den Zugang des Seitenbetreibers mit Claude Haiku. Begrenzt auf rund 30 Bilder pro Stunde und mindestens 6 Sekunden Takt. Für mehr wähle oben einen Anbieter mit eigenem Schlüssel.</p>
 
     <div id="baseWrap" class="hide">
       <label for="base">Basis-URL</label>
@@ -157,16 +159,18 @@
       <p class="note">Zum Beispiel ein lokales Modell über Ollama oder LM Studio, per HTTPS-Tunnel erreichbar.</p>
     </div>
 
+    <div id="ownWrap">
     <label for="key">API-Schlüssel</label>
     <input id="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="hier einfügen">
     <p class="note" id="keyNote"></p>
 
     <label for="model">Modell</label>
     <input id="model" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
 
     <label>Takt: neues Bild alle</label>
     <div class="seg" id="interval">
-      <button data-v="2">2 s</button><button data-v="4">4 s</button><button data-v="7">7 s</button><button data-v="12">12 s</button>
+      <button data-v="2">2 s</button><button data-v="4">4 s</button><button data-v="7">7 s</button><button data-v="12">12 s</button><button data-v="20">20 s</button>
     </div>
 
     <label>Sprache der Gedanken</label>
@@ -198,9 +202,13 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const STORE = 'liveblick.v1';
-  const DEFAULT_MODEL = { gemini: 'gemini-flash-latest', anthropic: 'claude-haiku-5-5', openai: '' };
+  const STORE = 'liveblick.v2';
+  const PROXY_URL = 'https://bkaanp-proxy.batuhan-kaan-piskin.workers.dev/v1/messages';
+  const DEMO_MODEL = 'claude-haiku-5-5', DEMO_MIN_GAP = 6;
+  const LIMIT_MSG = 'Das Demo-Kontingent ist aufgebraucht (rund 30 Bilder pro Stunde). In etwa einer Stunde geht es weiter, oder du trägst in den Einstellungen einen eigenen Schlüssel ein.';
+  const DEFAULT_MODEL = { demo: DEMO_MODEL, gemini: 'gemini-flash-latest', anthropic: 'claude-haiku-5-5', openai: '' };
   const KEY_NOTE = {
+    demo: '',
     gemini: 'Kostenlosen Schlüssel holen: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>',
     anthropic: 'Schlüssel erstellen: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>',
     openai: 'Bei lokalen Modellen ohne Schlüssel einfach leer lassen.'
@@ -208,16 +216,21 @@
   const LANG = { de: 'Deutsch', en: 'English', tr: 'Türkçe' };
   const IDLE_MAX = 20000, HISTORY = 6, MAX_ENTRIES = 40, LONG_SIDE = 768;
 
-  const defaults = { provider: 'gemini', keys: {}, models: {}, base: '', interval: 4, lang: 'de', focus: '', changeOnly: true, speak: false, facing: 'environment' };
+  const defaults = { provider: 'demo', keys: {}, models: {}, base: '', interval: 7, lang: 'de', focus: '', changeOnly: true, speak: false, facing: 'environment' };
   let cfg = load();
   function load() {
-    try { return Object.assign({}, defaults, JSON.parse(localStorage.getItem(STORE) || '{}')); }
-    catch (e) { return Object.assign({}, defaults); }
+    const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+    const own = read(STORE);
+    if (own) return Object.assign({}, defaults, own);
+    const old = read('liveblick.v1') || {};   // frühere Version: Schlüssel behalten, aber im Demo-Zugang starten
+    return Object.assign({}, defaults, { keys: Object.assign({}, old.keys), models: Object.assign({}, old.models), base: old.base || '' });
   }
   function persist() { try { localStorage.setItem(STORE, JSON.stringify(cfg)); } catch (e) {} }
   const keyOf = () => (cfg.keys[cfg.provider] || '').trim();
-  const modelOf = () => (cfg.models[cfg.provider] || DEFAULT_MODEL[cfg.provider] || '').trim();
-  const configured = () => cfg.provider === 'openai' ? !!(cfg.base.trim() && modelOf()) : !!keyOf();
+  const isDemo = () => cfg.provider === 'demo';
+  const modelOf = () => isDemo() ? DEMO_MODEL : (cfg.models[cfg.provider] || DEFAULT_MODEL[cfg.provider] || '').trim();
+  const configured = () => isDemo() ? true : cfg.provider === 'openai' ? !!(cfg.base.trim() && modelOf()) : !!keyOf();
+  const gapSec = () => isDemo() ? Math.max(DEMO_MIN_GAP, cfg.interval) : cfg.interval;
 
   const cam = $('cam'), feed = $('feed'), grab = $('grab'), tiny = $('tiny');
   let stream = null, running = false, abort = null, wake = null;
@@ -376,9 +389,11 @@
         for (const p of parts) if (p.text && !p.thought) onText(p.text);
       });
     },
-    async anthropic(b64, sys, user, onText, signal) {
-      const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal,
-        headers: { 'content-type': 'application/json', 'x-api-key': keyOf(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    demo(b64, sys, user, onText, signal) { return PROVIDERS.anthropic(b64, sys, user, onText, signal, true); },
+    async anthropic(b64, sys, user, onText, signal, viaProxy) {
+      const res = await fetch(viaProxy ? PROXY_URL : 'https://api.anthropic.com/v1/messages', { method: 'POST', signal,
+        headers: viaProxy ? { 'content-type': 'application/json', 'anthropic-version': '2023-06-01' }
+          : { 'content-type': 'application/json', 'x-api-key': keyOf(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
         body: JSON.stringify({ model: modelOf(), max_tokens: 400, stream: true, system: sys,
           messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } }, { type: 'text', text: user }] }] }) });
       if (!res.ok) await fail(res);
@@ -453,6 +468,10 @@
       } catch (e) {
         if (!running || (e && e.name === 'AbortError')) break;
         const s = e.status;
+        if (isDemo() && s) {
+          showError(s === 429 ? LIMIT_MSG : 'Der Demo-Zugang ist gerade nicht verfügbar (' + (e.message || s) + '). Versuch es später noch einmal oder trag in den Einstellungen einen eigenen Schlüssel ein.');
+          stop(); setState('error', s === 429 ? 'Demo-Limit erreicht' : 'Demo nicht verfügbar'); return;
+        }
         if (s === 401 || s === 403 || (s === 400 && /api.?key/i.test(e.message))) {
           showError('Der Schlüssel wurde abgelehnt: ' + e.message); stop(); setState('error', 'Schlüssel prüfen'); openSheet(); return;
         }
@@ -464,7 +483,7 @@
         await sleep(backoff * 1000);
         continue;
       }
-      const rest = cfg.interval * 1000 - (Date.now() - started);
+      const rest = gapSec() * 1000 - (Date.now() - started);
       if (rest > 0) await sleep(rest);
     }
   }
@@ -516,6 +535,8 @@
     const p = draft.provider;
     $('provider').value = p;
     $('baseWrap').classList.toggle('hide', p !== 'openai');
+    $('ownWrap').classList.toggle('hide', p === 'demo');
+    $('demoNote').classList.toggle('hide', p !== 'demo');
     $('base').value = draft.base || '';
     $('key').value = draft.keys[p] || '';
     $('keyNote').innerHTML = KEY_NOTE[p];
@@ -524,6 +545,7 @@
   }
   function readProvider() {
     const p = draft.provider;
+    if (p === 'demo') return;
     draft.keys[p] = $('key').value.trim();
     draft.models[p] = $('model').value.trim();
     draft.base = $('base').value.trim();
