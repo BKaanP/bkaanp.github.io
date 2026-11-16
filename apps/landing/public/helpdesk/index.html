@@ -183,7 +183,7 @@
       <option value="gemini">Google Gemini (eigener Schlüssel)</option>
       <option value="openai">Eigener Endpunkt (OpenAI-kompatibel)</option>
     </select>
-    <p class="note2 hide" id="demoNote">Läuft über den Zugang des Seitenbetreibers mit Claude Haiku, begrenzt auf rund 30 Anfragen pro Stunde. Für mehr wähle oben einen Anbieter mit eigenem Schlüssel.</p>
+    <p class="note2 hide" id="demoNote">Läuft über den Zugang des Seitenbetreibers mit Claude Haiku, begrenzt auf rund 300 Anfragen pro Stunde. Für mehr wähle oben einen Anbieter mit eigenem Schlüssel.</p>
     <div id="baseWrap" class="hide">
       <label for="base">Basis-URL</label>
       <input id="base" type="url" autocomplete="off" spellcheck="false" placeholder="https://…/v1">
@@ -214,7 +214,7 @@
   const STORE = 'helpdesk.v2';
   const PROXY_URL = 'https://bkaanp-proxy.batuhan-kaan-piskin.workers.dev/v1/messages';
   const DEMO_MODEL = 'claude-haiku-5-5';
-  const LIMIT_MSG = 'Das Demo-Kontingent ist aufgebraucht (rund 30 Anfragen pro Stunde). In etwa einer Stunde geht es weiter, oder du trägst in den Einstellungen einen eigenen Schlüssel ein.';
+  const LIMIT_MSG = 'Das Demo-Kontingent ist aufgebraucht (rund 300 Anfragen pro Stunde). In etwa einer Stunde geht es weiter, oder du trägst in den Einstellungen einen eigenen Schlüssel ein.';
   const DEFAULT_MODEL = { demo: DEMO_MODEL, anthropic: 'claude-sonnet-5-5', gemini: 'gemini-flash-latest', openai: '' };
   const KEY_NOTE = {
     demo: '',

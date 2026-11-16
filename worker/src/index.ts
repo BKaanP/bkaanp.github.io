@@ -7,7 +7,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ]
 
-const RATE_LIMIT = 30
+const RATE_LIMIT = 300
 const WINDOW_MS = 3_600_000
 
 const requestCounts = new Map<string, { count: number; resetAt: number }>()
