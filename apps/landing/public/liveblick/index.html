@@ -464,11 +464,14 @@
     if (!w || !h) return null;
     const longSide = isProduct() ? 1280 : 768;   // Typenschilder brauchen mehr Auflösung
     const s = Math.min(1, longSide / Math.max(w, h));
-    grab.width = Math.round(w * s); grab.height = Math.round(h * s);
-    grab.getContext('2d').drawImage(cam, 0, 0, grab.width, grab.height);
+    /* Das Bild wird mittig auf ein Quadrat gesetzt. Das Modell normiert Koordinaten mal auf Breite und Höhe getrennt,
+       mal einheitlich auf die lange Seite; im Quadrat ergeben beide Lesarten dasselbe. */
+    const fw = Math.round(w * s), fh = Math.round(h * s), S = Math.max(fw, fh), px = Math.round((S - fw) / 2), py = Math.round((S - fh) / 2);
+    grab.width = S; grab.height = S;
+    const c2 = grab.getContext('2d'); c2.fillStyle = '#000'; c2.fillRect(0, 0, S, S); c2.drawImage(cam, px, py, fw, fh);
     const g = tinyNow();
     const b64 = grab.toDataURL('image/jpeg', isProduct() ? 0.74 : 0.62).split(',')[1];
-    return { tinyNow: g, diff: lastTiny ? tinyDiff(g, lastTiny) : 1, b64: () => b64, heading, vw: w, vh: h };
+    return { tinyNow: g, diff: lastTiny ? tinyDiff(g, lastTiny) : 1, b64: () => b64, heading, vw: w, vh: h, sq: { S, px, py, fw, fh } };
   }
 
   /* ---------- Rahmen um erkannte Dinge ---------- */
@@ -497,6 +500,17 @@
       el.onclick = () => pickObject(b.n);
       boxesEl.appendChild(el);
     }
+  }
+  /* Rahmen aus dem Quadrat zurück ins eigentliche Kamerabild rechnen */
+  function fromSquare(list, sq) {
+    const out = [];
+    for (const b of list) {
+      const x1 = clamp((b.x1 / 1000 * sq.S - sq.px) / sq.fw * 1000), x2 = clamp((b.x2 / 1000 * sq.S - sq.px) / sq.fw * 1000);
+      const y1 = clamp((b.y1 / 1000 * sq.S - sq.py) / sq.fh * 1000), y2 = clamp((b.y2 / 1000 * sq.S - sq.py) / sq.fh * 1000);
+      if (x2 - x1 < 8 || y2 - y1 < 8) continue;
+      out.push(Object.assign({}, b, { x1, y1, x2, y2 }));
+    }
+    return out;
   }
   function setBoxes(list, tinyAtCapture) { boxData = list; boxTiny = tinyAtCapture; boxesEl.classList.remove('stale'); layoutBoxes(); }
   /* Liest die OBJEKTE-Zeile. Gibt null zurück, solange sie noch nicht vollständig gestreamt ist. */
@@ -541,7 +555,7 @@
   window.addEventListener('resize', layoutBoxes);
 
   /* ---------- Prompts ---------- */
-  const BOX_RULES = 'Zu OBJEKTE: x1,y1 ist die linke obere und x2,y2 die rechte untere Ecke des Rahmens, als ganze Zahlen von 0 bis 1000, relativ zur Bildbreite (x) und zur Bildhöhe (y), Ursprung links oben. Zieh jeden Rahmen eng um das Ding. Die ganze Liste steht in einer einzigen Zeile.';
+  const BOX_RULES = 'Zu OBJEKTE: Das Bild ist quadratisch. x1,y1 ist die linke obere und x2,y2 die rechte untere Ecke des Rahmens, als ganze Zahlen von 0 bis 1000 über die volle Bildbreite (x) und die volle Bildhöhe (y), Ursprung links oben. Schwarze Balken am Rand sind nur Füllung und gehören nicht zur Szene. Zieh jeden Rahmen eng um das Ding. Die ganze Liste steht in einer einzigen Zeile.';
   function systemPrompt() {
     const lang = LANG[cfg.lang] || 'Deutsch', focus = cfg.focus.trim();
     return [
@@ -607,9 +621,10 @@
     if (cfg.facing === 'user') sx = f.W - sx;
     return { x: clamp(Math.round((sx - f.ox) / f.w * 1000)), y: clamp(Math.round((sy - f.oy) / f.h * 1000)) };
   }
-  function productUser() {
+  function productUser(sq) {
     const a = aimPoint(), lines = [];
-    lines.push('Das Fadenkreuz liegt bei x=' + a.x + ', y=' + a.y + ' (Skala 0 bis 1000).');
+    const ax = Math.round((sq.px + a.x / 1000 * sq.fw) / sq.S * 1000), ay = Math.round((sq.py + a.y / 1000 * sq.fh) / sq.S * 1000);
+    lines.push('Das Fadenkreuz liegt bei x=' + ax + ', y=' + ay + ' (Skala 0 bis 1000).');
     if (prod.hint) lines.push('Der Mensch hat im Bild den Gegenstand „' + prod.hint + '“ angetippt. Nimm diesen Gegenstand, auch wenn er nicht genau unter dem Fadenkreuz liegt.');
     if (prod.art) lines.push('Bisher von dir gesichert: Art=' + prod.art + ', Marke=' + (prod.marke || 'unbekannt') + ', Modell=' + (prod.modell || 'unbekannt') + '. Behalte gesicherte Angaben bei, solange es derselbe Gegenstand ist. Ist jetzt ein anderer Gegenstand anvisiert, fang neu an.');
     lines.push(prod.n ? 'Neues Bild.' : 'Erstes Bild.');
@@ -752,12 +767,12 @@
     };
     abort = new AbortController();
     try {
-      await PROVIDERS[cfg.provider](shot.b64(), product ? productSystem() : inRoom ? roomSystem() : systemPrompt(), product ? productUser() : inRoom ? 'Neues Bild.' : userPrompt(gap), chunk => {
+      await PROVIDERS[cfg.provider](shot.b64(), product ? productSystem() : inRoom ? roomSystem() : systemPrompt(), product ? productUser(shot.sq) : inRoom ? 'Neues Bild.' : userPrompt(gap), chunk => {
         if (!first) first = performance.now() - t0;
         raw += chunk;
         if (!boxed && myGen === gen && (cfg.boxes || product || inRoom)) {
-          const b = parseBoxes(raw, false);
-          if (b) { boxed = true; if (product && b[0]) b[0].target = true; setBoxes(product ? b.slice(0, 1) : b, shot.tinyNow); }
+          let b = parseBoxes(raw, false);
+          if (b) { boxed = true; b = fromSquare(b, shot.sq); if (product && b[0]) b[0].target = true; setBoxes(product ? b.slice(0, 1) : b, shot.tinyNow); }
         }
         if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; draw(); }); }
       }, abort.signal, { maxTokens: FRAME_TOKENS, fast: true });
@@ -774,7 +789,7 @@
     if (inRoom) {
       const see = parse(raw).see;
       if (!/OBJEKTE\s*:/i.test(raw) && !see) throw new Error('Das Modell hat keine verwertbare Antwort geliefert. Ich versuche es mit dem nächsten Bild erneut.');
-      mergeRoom(parseBoxes(raw, true) || [], shot);
+      mergeRoom(fromSquare(parseBoxes(raw, true) || [], shot.sq), shot);
       $('rMeta').textContent = secs;
       return;
     }
