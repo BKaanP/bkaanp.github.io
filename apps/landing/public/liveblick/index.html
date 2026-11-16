@@ -113,12 +113,12 @@
   #tools { position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top) + 64px); display: flex; gap: 8px; padding: 0 14px; align-items: center; }
   .pill { height: 36px; border-radius: 18px; border: 1px solid var(--line); background: rgba(0,0,0,.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     color: var(--ink); font: 600 13px/1 var(--sans); padding: 0 13px; display: flex; align-items: center; gap: 7px; min-width: 0; }
-  #focusBtn { flex: 0 1 auto; max-width: 58%; }
+  #focusBtn { flex: 0 1 auto; max-width: 40%; }
   #focusBtn b { font: 600 10px/1 var(--mono); letter-spacing: .09em; color: var(--accent); text-transform: uppercase; flex: none; }
   #focusBtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #mode { margin-left: auto; flex: none; display: flex; padding: 3px; gap: 2px; height: 36px; border-radius: 18px; border: 1px solid var(--line);
     background: rgba(0,0,0,.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-  #mode button { border: 0; background: none; border-radius: 15px; padding: 0 12px; font: 600 13px/1 var(--sans); color: var(--dim); }
+  #mode button { border: 0; background: none; border-radius: 15px; padding: 0 10px; font: 600 13px/1 var(--sans); color: var(--dim); }
   #mode button.on { background: var(--ink); color: #111; }
   #focusPop { position: absolute; left: 14px; right: 14px; top: calc(env(safe-area-inset-top) + 108px); z-index: 5; display: none; background: var(--panel);
     border: 1px solid var(--line); border-radius: 16px; padding: 14px; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
@@ -174,6 +174,38 @@
   #pActs button { flex: 1; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: transparent; font: 600 13.5px/1 var(--sans); color: var(--ink); }
   #pActs button.pri { background: var(--accent); border-color: var(--accent); color: #1a1205; }
   #pActs button:disabled { opacity: .38; }
+
+  /* Raum-Modus */
+  #roomP { display: none; pointer-events: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 13px 14px 12px;
+    max-height: 100%; overflow-y: auto; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  body[data-mode="room"] #roomP { display: block; }
+  body[data-mode="room"] #feed { display: none; }
+  body[data-mode="room"] #feedWrap { top: 40%; padding-left: 12px; padding-right: 12px; }
+  #rTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 26px; }
+  #rTitle { font: 600 10.5px/1.3 var(--mono); letter-spacing: .09em; color: var(--dim); }
+  #rCompass { border: 0; border-radius: 12px; background: var(--accent); color: #1a1205; font: 700 12px/1 var(--sans); padding: 7px 10px; flex: none; }
+  #rCompass:disabled { background: none; color: var(--err); padding: 0; font-weight: 600; }
+  #rBody { display: flex; gap: 12px; margin-top: 10px; align-items: flex-start; }
+  #rMap { width: 150px; height: 150px; flex: none; overflow: visible; }
+  #rMap .ring { fill: none; stroke: var(--line); stroke-width: 1; }
+  #rMap .cone { fill: rgba(255, 180, 84, .16); stroke: rgba(255, 180, 84, .5); stroke-width: 1; }
+  #rMap .lab { font: 500 7px var(--mono); fill: var(--faint); }
+  #rMap .num { font: 700 9px var(--sans); fill: #0b0c0e; text-anchor: middle; }
+  #rMap .me { fill: var(--ink); }
+  #rList { list-style: none; margin: 0; padding: 0; flex: 1; min-width: 0; max-height: 150px; overflow-y: auto; }
+  #rList li { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; padding: 5px 0; align-items: center; }
+  #rList li i { grid-row: span 2; width: 22px; height: 22px; border-radius: 50%; background: hsl(var(--h) 92% 64%); color: #0b0c0e; font: 700 11px/22px var(--sans); text-align: center; font-style: normal; }
+  #rList li b { font: 600 14px/1.25 var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #rList li span { font-size: 12px; line-height: 1.3; color: var(--dim); }
+  #rList li span:empty { display: none; }
+  #rSee { margin: 10px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--dim); }
+  #rSee.err { color: var(--err); }
+  #rSee:empty, #rMeta:empty { display: none; }
+  #rMeta { font: 500 10px/1 var(--mono); color: var(--faint); margin-top: 8px; letter-spacing: .06em; }
+  #rActs { display: flex; gap: 8px; margin-top: 12px; }
+  #rActs button { flex: 1; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: transparent; font: 600 13.5px/1 var(--sans); color: var(--ink); }
+  #rActs button.pri { background: var(--accent); border-color: var(--accent); color: #1a1205; }
+  #rActs button:disabled { opacity: .38; }
   .hide { display: none !important; }
 </style>
 </head>
@@ -197,7 +229,7 @@
 
   <div id="tools">
     <button class="pill" id="focusBtn"><b>Fokus</b><span id="focusText">Alles</span></button>
-    <div id="mode"><button data-v="observe">Umschau</button><button data-v="product">Produkt</button></div>
+    <div id="mode"><button data-v="observe">Umschau</button><button data-v="product">Produkt</button><button data-v="room">Raum</button></div>
   </div>
   <div id="focusPop">
     <div class="chips" id="focusChips"></div>
@@ -206,7 +238,7 @@
 
   <div id="feedWrap">
     <div id="feed">
-      <div id="hint">Tippe auf Start. Die KI schaut durch deine Kamera, rahmt ein, was sie erkennt, und denkt hier laut mit. Oben stellst du den Fokus ein oder wechselst in den Produkt-Modus.</div>
+      <div id="hint">Tippe auf Start. Die KI schaut durch deine Kamera, rahmt ein, was sie erkennt, und denkt hier laut mit. Oben stellst du den Fokus ein oder wechselst in den Produkt- oder Raum-Modus.</div>
     </div>
     <div id="product">
       <div id="pHead"></div>
@@ -215,6 +247,13 @@
       <div id="pMeta"></div>
       <div id="pActs"><button id="pNew">Neues Produkt</button><button id="pGo" class="pri" disabled>Jetzt recherchieren</button></div>
       <div id="pRes" class="hide"></div>
+    </div>
+    <div id="roomP">
+      <div id="rTop"><span id="rTitle">RAUM</span><button id="rCompass" class="hide">Kompass aktivieren</button></div>
+      <div id="rBody"><svg id="rMap" class="hide" viewBox="-100 -100 200 200"></svg><ol id="rList"></ol></div>
+      <p id="rSee"></p>
+      <div id="rMeta"></div>
+      <div id="rActs"><button id="rClear" disabled>Leeren</button><button id="rCopy" class="pri" disabled>Liste kopieren</button></div>
     </div>
   </div>
 
@@ -304,7 +343,8 @@
   };
   const LANG = { de: 'Deutsch', en: 'English', tr: 'Türkçe' };
   const PRESETS = ['Elektronische Geräte', 'Texte und Schilder', 'Lebensmittel', 'Pflanzen', 'Möbel', 'Werkzeug'];
-  const IDLE_MAX = 20000, IDLE_MAX_PRODUCT = 12000, HISTORY = 6, MAX_ENTRIES = 40;
+  const IDLE_MAX = 20000, IDLE_MAX_PRODUCT = 12000, HISTORY = 6, MAX_ENTRIES = 40, FRAME_TOKENS = 800;
+  const MODES = ['observe', 'product', 'room'];
 
   const defaults = { provider: 'demo', keys: {}, models: {}, base: '', interval: 7, lang: 'de', focus: '', extra: '', mode: 'observe', boxes: true, changeOnly: true, speak: false, facing: 'environment' };
   let cfg = load();
@@ -319,6 +359,7 @@
   const keyOf = () => (cfg.keys[cfg.provider] || '').trim();
   const isDemo = () => cfg.provider === 'demo';
   const isProduct = () => cfg.mode === 'product';
+  const isRoom = () => cfg.mode === 'room';
   const modelOf = () => isDemo() ? DEMO_MODEL : (cfg.models[cfg.provider] || DEFAULT_MODEL[cfg.provider] || '').trim();
   const configured = () => isDemo() ? true : cfg.provider === 'openai' ? !!(cfg.base.trim() && modelOf()) : !!keyOf();
   const gapSec = () => isDemo() ? Math.max(DEMO_MIN_GAP, cfg.interval) : cfg.interval;
@@ -326,9 +367,10 @@
 
   const cam = $('cam'), feed = $('feed'), grab = $('grab'), tiny = $('tiny'), boxesEl = $('boxes');
   let stream = null, running = false, abort = null, wake = null, gen = 0;
-  let history = [], lastTiny = null, lastRun = 0, frames = 0, geminiLowThinking = true;
+  let history = [], lastTiny = null, lastRun = 0, frames = 0, geminiLowThinking = true, claudeThinkOff = true;
   let boxData = [], boxTiny = null;
   let prod = null, forceResearch = false, researching = false;
+  let room = { items: [], frames: 0 }, heading = null, gotAbs = false, compassOn = false, lastMapDraw = 0;
 
   /* ---------- Anzeige ---------- */
   function setState(state, text) { document.body.dataset.state = state; $('statusText').textContent = text; }
@@ -376,6 +418,7 @@
   }
   function showError(msg) {
     if (isProduct()) { $('pAsk').textContent = msg; $('pAsk').classList.add('err'); return; }
+    if (isRoom()) { $('rSee').textContent = msg; $('rSee').classList.add('err'); return; }
     const el = addEntry('err');
     el.querySelector('.think').textContent = msg;
     feed.scrollTop = feed.scrollHeight;
@@ -425,7 +468,7 @@
     grab.getContext('2d').drawImage(cam, 0, 0, grab.width, grab.height);
     const g = tinyNow();
     const b64 = grab.toDataURL('image/jpeg', isProduct() ? 0.74 : 0.62).split(',')[1];
-    return { tinyNow: g, diff: lastTiny ? tinyDiff(g, lastTiny) : 1, b64: () => b64 };
+    return { tinyNow: g, diff: lastTiny ? tinyDiff(g, lastTiny) : 1, b64: () => b64, heading, vw: w, vh: h };
   }
 
   /* ---------- Rahmen um erkannte Dinge ---------- */
@@ -483,8 +526,8 @@
       if (c.every(v => v >= 0 && v <= 1)) c = c.map(v => v * 1000);
       const x1 = clamp(Math.min(c[0], c[2])), x2 = clamp(Math.max(c[0], c[2])), y1 = clamp(Math.min(c[1], c[3])), y2 = clamp(Math.max(c[1], c[3]));
       if (x2 - x1 < 8 || y2 - y1 < 8) continue;
-      out.push({ n, x1, y1, x2, y2 });
-      if (out.length >= 8) break;
+      out.push({ n, x1, y1, x2, y2, m: typeof o.m === 'number' && o.m > 0 ? Math.min(30, o.m) : null });
+      if (out.length >= 10) break;
     }
     return out;
   }
@@ -542,6 +585,20 @@
       'Die Marker bleiben immer genau so stehen. Den Inhalt schreibst du auf ' + lang + '.',
       BOX_RULES
     ].join('\n');
+  }
+  function roomSystem() {
+    const lang = LANG[cfg.lang] || 'Deutsch', focus = cfg.focus.trim();
+    return [
+      'Du erfasst das Inventar eines Raums. Der Mensch steht an einer Stelle, dreht sich langsam und zeigt dir den Raum Bild für Bild durch die Kamera seines Handys.',
+      'Antworte immer in genau diesem Format, ohne Markdown:',
+      'OBJEKTE: <gültiges JSON: Liste aller klar erkennbaren Gegenstände, höchstens zehn, je {"n":"Name","x1":0,"y1":0,"x2":0,"y2":0,"m":0.0}>',
+      'SEHE: <ein kurzer Satz, welcher Teil des Raums gerade zu sehen ist>',
+      'm ist deine grobe Schätzung der Entfernung von der Kamera in Metern, mit einer Nachkommastelle.',
+      'Benenne gleiche Dinge immer gleich und möglichst konkret, zum Beispiel Monitor, Laptop, Drucker, Steckdosenleiste, Router. Keine Farben und keine Zustände im Namen. Wände, Boden, Decke, Fenster und Personen gehören nicht ins Inventar.',
+      'Die Marker bleiben immer genau so stehen. Namen und Satz schreibst du auf ' + lang + '.',
+      BOX_RULES + ' Ist nichts zu erfassen, schreib OBJEKTE: []',
+      focus ? 'FOKUS: Erfasse ausschließlich, was hierzu passt: «' + focus + '». Alles andere lässt du weg.' : ''
+    ].filter(Boolean).join('\n');
   }
   function aimPoint() {
     const f = frameRect(); if (!f) return { x: 500, y: 500 };
@@ -606,7 +663,7 @@
       opts = opts || {};
       const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelOf()) + ':streamGenerateContent?alt=sse';
       const call = (search, low) => {
-        const generationConfig = { maxOutputTokens: (opts.maxTokens || 600) + 2000 };
+        const generationConfig = { maxOutputTokens: (opts.maxTokens || FRAME_TOKENS) + 2000 };
         if (low) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
         const body = { systemInstruction: { parts: [{ text: sys }] },
           contents: [{ role: 'user', parts: [{ inlineData: { mimeType: 'image/jpeg', data: b64 } }, { text: user }] }], generationConfig };
@@ -627,17 +684,22 @@
     demo(b64, sys, user, onText, signal, opts) { return PROVIDERS.anthropic(b64, sys, user, onText, signal, opts, true); },
     async anthropic(b64, sys, user, onText, signal, opts, viaProxy) {
       opts = opts || {};
-      const call = search => {
-        const body = { model: modelOf(), max_tokens: opts.maxTokens || 600, stream: true, system: sys,
+      /* Das Modell denkt sonst vor jeder Antwort still nach. Das kostet Zeit und zählt gegen max_tokens,
+         im schlimmsten Fall bleibt für die sichtbare Antwort nichts übrig. Für Live-Bilder schalten wir es ab. */
+      const call = (search, thinkOff) => {
+        const body = { model: modelOf(), max_tokens: (opts.maxTokens || FRAME_TOKENS) + (thinkOff ? 0 : 1600), stream: true, system: sys,
           messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } }, { type: 'text', text: user }] }] };
+        if (thinkOff) body.thinking = { type: 'disabled' };
         if (search) body.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }];
         return fetch(viaProxy ? PROXY_URL : 'https://api.anthropic.com/v1/messages', { method: 'POST', signal,
           headers: viaProxy ? { 'content-type': 'application/json', 'anthropic-version': '2023-06-01' }
             : { 'content-type': 'application/json', 'x-api-key': keyOf(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
           body: JSON.stringify(body) });
       };
-      let res = await call(!!opts.search);
-      if (res.status === 400 && opts.search) { if (opts.onNoSearch) opts.onNoSearch(); res = await call(false); }
+      let search = !!opts.search, thinkOff = !!opts.fast && claudeThinkOff;
+      let res = await call(search, thinkOff);
+      if (res.status === 400 && search) { if (opts.onNoSearch) opts.onNoSearch(); search = false; res = await call(search, thinkOff); }
+      if (res.status === 400 && thinkOff) { claudeThinkOff = false; thinkOff = false; res = await call(search, thinkOff); }
       if (!res.ok) await fail(res);
       const queries = {}, found = []; let cited = 0;
       await sse(res, j => {
@@ -676,24 +738,29 @@
 
   /* ---------- Ein Gedanke (Umschau) oder ein Produktblick ---------- */
   async function think(shot) {
-    const myGen = gen, product = isProduct();
+    const myGen = gen, product = isProduct(), inRoom = isRoom();
     const t0 = performance.now();
     const gap = lastRun ? Math.max(1, Math.round((Date.now() - lastRun) / 1000)) : 0;
-    setState('thinking', product ? 'Prüft das Produkt …' : 'Denkt …');
-    const el = product ? null : addEntry('live');
+    setState('thinking', product ? 'Prüft das Produkt …' : inRoom ? 'Erfasst den Raum …' : 'Denkt …');
+    const el = product || inRoom ? null : addEntry('live');
     let raw = '', first = 0, queued = false, boxed = false;
-    const draw = () => { if (myGen !== gen) return; if (product) paintProduct(raw); else paint(el, raw); };
+    const draw = () => {
+      if (myGen !== gen) return;
+      if (product) paintProduct(raw);
+      else if (inRoom) { const see = parse(raw).see; if (see) { $('rSee').classList.remove('err'); $('rSee').textContent = see; } }
+      else paint(el, raw);
+    };
     abort = new AbortController();
     try {
-      await PROVIDERS[cfg.provider](shot.b64(), product ? productSystem() : systemPrompt(), product ? productUser() : userPrompt(gap), chunk => {
+      await PROVIDERS[cfg.provider](shot.b64(), product ? productSystem() : inRoom ? roomSystem() : systemPrompt(), product ? productUser() : inRoom ? 'Neues Bild.' : userPrompt(gap), chunk => {
         if (!first) first = performance.now() - t0;
         raw += chunk;
-        if (!boxed && myGen === gen && (cfg.boxes || product)) {
+        if (!boxed && myGen === gen && (cfg.boxes || product || inRoom)) {
           const b = parseBoxes(raw, false);
           if (b) { boxed = true; if (product && b[0]) b[0].target = true; setBoxes(product ? b.slice(0, 1) : b, shot.tinyNow); }
         }
         if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; draw(); }); }
-      }, abort.signal, { maxTokens: 600 });
+      }, abort.signal, { maxTokens: FRAME_TOKENS, fast: true });
     } catch (e) {
       if (el) { if (raw.trim() && myGen === gen) paint(el, raw); else el.remove(); }
       throw e;
@@ -704,15 +771,22 @@
     if (!boxed) setBoxes([], shot.tinyNow);
     frames++; lastRun = Date.now(); lastTiny = shot.tinyNow;
     const secs = 'ERSTES WORT NACH ' + (first / 1000).toFixed(1) + ' S · FERTIG NACH ' + ((performance.now() - t0) / 1000).toFixed(1) + ' S';
+    if (inRoom) {
+      const see = parse(raw).see;
+      if (!/OBJEKTE\s*:/i.test(raw) && !see) throw new Error('Das Modell hat keine verwertbare Antwort geliefert. Ich versuche es mit dem nächsten Bild erneut.');
+      mergeRoom(parseBoxes(raw, true) || [], shot);
+      $('rMeta').textContent = secs;
+      return;
+    }
     if (product) {
       const p = paintProduct(raw);
-      if (!p.art && !p.denke && !p.bitte) throw new Error('Das Modell hat nichts geantwortet. Prüfe den Modellnamen in den Einstellungen.');
+      if (!p.art && !p.denke && !p.bitte) throw new Error('Das Modell hat keine verwertbare Antwort geliefert. Ich versuche es mit dem nächsten Bild erneut.');
       $('pMeta').textContent = 'BILD ' + frames + ' · ' + secs;
       applyProduct(p);
       return;
     }
     const p = paint(el, raw);
-    if (!p.see && !p.think) { el.remove(); throw new Error('Das Modell hat nichts geantwortet. Prüfe den Modellnamen in den Einstellungen.'); }
+    if (!p.see && !p.think) { el.remove(); throw new Error('Das Modell hat keine verwertbare Antwort geliefert. Ich versuche es mit dem nächsten Bild erneut.'); }
     history.push({ see: p.see || '–', think: p.think || '–' });
     if (history.length > HISTORY) history.shift();
     el.querySelector('.meta').textContent = 'BILD ' + frames + ' · ' + secs;
@@ -835,6 +909,113 @@
     else { restartThinking(); resetProduct(name); }
   }
 
+  /* ---------- Raum-Modus: Inventar und Richtungskarte ---------- */
+  const angDiff = (a, b) => ((a - b + 540) % 360) - 180;
+  /* Blickrichtung der Rückkamera aus alpha/beta/gamma (Rechenweg aus der W3C-Spezifikation) */
+  function cameraHeading(alpha, beta, gamma) {
+    const d = Math.PI / 180, x = (beta || 0) * d, y = (gamma || 0) * d, z = (alpha || 0) * d;
+    const cX = Math.cos(x), cY = Math.cos(y), cZ = Math.cos(z), sX = Math.sin(x), sY = Math.sin(y), sZ = Math.sin(z);
+    const Vx = -cZ * sY - sZ * sX * cY, Vy = -sZ * sY + cZ * sX * cY;
+    let h = Math.atan(Vx / Vy);
+    if (Vy < 0) h += Math.PI; else if (Vx < 0) h += 2 * Math.PI;
+    return h / d;
+  }
+  function onOrient(e) {
+    let h = null;
+    if (typeof e.webkitCompassHeading === 'number' && e.webkitCompassHeading >= 0) h = e.webkitCompassHeading;   // iPhone
+    else if (typeof e.alpha === 'number') {
+      if (e.type === 'deviceorientationabsolute' || e.absolute) gotAbs = true; else if (gotAbs) return;
+      h = cameraHeading(e.alpha, e.beta, e.gamma);
+    }
+    if (h === null || isNaN(h)) return;
+    heading = heading === null ? h : (heading + angDiff(h, heading) * 0.35 + 360) % 360;
+    const now = performance.now();
+    if (isRoom() && now - lastMapDraw > 120) { lastMapDraw = now; drawMap(); }
+  }
+  /* Muss auf dem iPhone direkt aus einem Tippen heraus aufgerufen werden */
+  async function enableCompass() {
+    if (compassOn) return true;
+    if (!window.DeviceOrientationEvent) { renderRoom(); return false; }
+    try {
+      if (typeof DeviceOrientationEvent.requestPermission === 'function' && await DeviceOrientationEvent.requestPermission() !== 'granted') { renderRoom(); return false; }
+    } catch (e) { renderRoom(); return false; }
+    window.addEventListener('deviceorientationabsolute', onOrient, true);
+    window.addEventListener('deviceorientation', onOrient, true);
+    compassOn = true; setTimeout(renderRoom, 700);
+    return true;
+  }
+  const roomKey = n => n.toLowerCase().replace(/[0-9]+/g, '').replace(/\s+/g, ' ').trim();
+  function mergeRoom(list, shot) {
+    room.frames++;
+    const hfov = shot.vw >= shot.vh ? 66 : 40;   // grober Bildwinkel der Hauptkamera, quer bzw. hochkant
+    const used = new Set();
+    for (const b of list) {
+      const key = roomKey(b.n); if (!key) continue;
+      const az = shot.heading === null ? null : (shot.heading + ((b.x1 + b.x2) / 2000 - 0.5) * hfov + 360) % 360;
+      let best = null, bestD = 1e9;
+      for (const it of room.items) {
+        if (it.key !== key || used.has(it)) continue;
+        const d = az === null || it.az === null ? 0 : Math.abs(angDiff(az, it.az));
+        if (d < bestD) { best = it; bestD = d; }
+      }
+      if (best && (az === null || best.az === null || bestD < 20)) {   // dasselbe Ding noch einmal gesehen
+        if (az !== null) best.az = best.az === null ? az : (best.az + angDiff(az, best.az) / (best.seen + 1) + 360) % 360;
+        if (b.m) best.m = best.m ? (best.m * best.seen + b.m) / (best.seen + 1) : b.m;
+        best.seen++; used.add(best);
+      } else { const it = { n: b.n, key, az, m: b.m || null, seen: 1 }; room.items.push(it); used.add(it); }
+    }
+    renderRoom();
+  }
+  function relDir(az) {
+    if (az === null || heading === null) return '';
+    const d = angDiff(az, heading), a = Math.abs(d), side = d > 0 ? 'rechts' : 'links';
+    return a < 25 ? 'vor dir' : a < 65 ? 'vorne ' + side : a < 115 ? side : a < 155 ? 'hinten ' + side : 'hinter dir';
+  }
+  const meters = m => m ? 'ca. ' + (m < 10 ? m.toFixed(1).replace('.', ',') : Math.round(m)) + ' m' : '';
+  function renderRoom() {
+    const n = room.items.length;
+    $('rTitle').textContent = 'RAUM · ' + n + (n === 1 ? ' DING' : ' DINGE') + ' · ' + room.frames + (room.frames === 1 ? ' BILD' : ' BILDER');
+    $('rCompass').classList.toggle('hide', compassOn && heading !== null);
+    $('rCompass').textContent = compassOn ? 'Kein Kompass-Signal' : 'Kompass aktivieren';
+    $('rCompass').disabled = compassOn;
+    const list = $('rList'); list.innerHTML = '';
+    room.items.forEach((it, i) => {
+      const li = document.createElement('li'); li.style.setProperty('--h', hue(it.key));
+      const no = document.createElement('i'); no.textContent = i + 1;
+      const name = document.createElement('b'); name.textContent = it.n;
+      const sub = document.createElement('span'); sub.className = 'dir';
+      li.appendChild(no); li.appendChild(name); li.appendChild(sub);
+      li.onclick = () => pickObject(it.n);
+      list.appendChild(li);
+    });
+    if (!n && !$('rSee').textContent) $('rSee').textContent = 'Bleib an einer Stelle stehen und dreh dich langsam einmal im Kreis. Ich sammle, was ich erkenne. Tipp: Stell den Fokus auf „Elektronische Geräte“.';
+    $('rCopy').disabled = !n; $('rClear').disabled = !n;
+    drawMap();
+  }
+  function drawMap() {
+    const svg = $('rMap'), subs = $('rList').querySelectorAll('.dir');
+    room.items.forEach((it, i) => { if (subs[i]) subs[i].textContent = [relDir(it.az), meters(it.m)].filter(Boolean).join(' · '); });
+    svg.classList.toggle('hide', heading === null);
+    if (heading === null) return;
+    const rad = Math.PI / 180, pt = (deg, r) => (r * Math.sin(deg * rad)).toFixed(1) + ',' + (-r * Math.cos(deg * rad)).toFixed(1);
+    let h = '<circle r="92" class="ring"/><circle r="61" class="ring"/><circle r="31" class="ring"/>';
+    h += '<path class="cone" d="M0,0 L' + pt(-20, 92) + ' A92,92 0 0 1 ' + pt(20, 92) + ' Z"/>';
+    h += '<text x="3" y="-33" class="lab">2 m</text><text x="3" y="-63" class="lab">4 m</text><text x="3" y="-94" class="lab">6 m</text>';
+    room.items.forEach((it, i) => {
+      if (it.az === null) return;
+      const r = 92 * Math.max(0.4, Math.min(6, it.m || 3)) / 6, c = pt(angDiff(it.az, heading), r).split(',');
+      h += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="8.5" fill="hsl(' + hue(it.key) + ' 92% 64%)"/><text x="' + c[0] + '" y="' + (Number(c[1]) + 3.4) + '" class="num">' + (i + 1) + '</text>';
+    });
+    h += '<circle r="4" class="me"/>';
+    svg.innerHTML = h;
+  }
+  function roomText() {
+    const lines = ['Rauminventar (Live-Blick, ' + new Date().toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) + ')'];
+    room.items.forEach((it, i) => lines.push((i + 1) + '. ' + it.n + (it.m ? ', ' + meters(it.m) : '') + (it.az !== null ? ', Richtung ' + Math.round(it.az) + '°' : '') + ', ' + it.seen + '× gesehen'));
+    lines.push('Entfernungen und Richtungen sind Schätzungen vom Standpunkt der Aufnahme aus.');
+    return lines.join('\n');
+  }
+
   /* ---------- Schleife ---------- */
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   /* Pause zwischen zwei Bildern; ein Wechsel von Modus, Fokus oder Ziel beendet sie sofort */
@@ -849,7 +1030,7 @@
       const wantResearch = isProduct() && forceResearch && prod.art;
       const idle = Date.now() - lastRun;
       if (!wantResearch && cfg.changeOnly && lastRun && shot.diff < 0.035 && idle < (isProduct() ? IDLE_MAX_PRODUCT : IDLE_MAX)) {
-        setState('watching', isProduct() ? 'Zielt · Bild unverändert' : 'Schaut · Bild unverändert');
+        setState('watching', (isProduct() ? 'Zielt' : isRoom() ? 'Erfasst' : 'Schaut') + ' · Bild unverändert');
         await sleep(350); continue;
       }
       const started = Date.now();
@@ -857,7 +1038,7 @@
         if (wantResearch) { forceResearch = false; await research(shot); }
         else await think(shot);
         backoff = 0;
-        if (running) setState('watching', isProduct() ? 'Zielt' : 'Schaut');
+        if (running) setState('watching', isProduct() ? 'Zielt' : isRoom() ? 'Erfasst' : 'Schaut');
       } catch (e) {
         if (!running) break;
         if (e && e.name === 'AbortError') continue;   // Modus oder Fokus gewechselt
@@ -890,7 +1071,7 @@
     try { setState('idle', 'Kamera startet …'); await openCam(); }
     catch (e) { showError(camError(e)); setState('error', 'Keine Kamera'); return; }
     running = true; document.body.classList.add('running'); $('goText').textContent = 'Stopp';
-    setState('watching', isProduct() ? 'Zielt' : 'Schaut');
+    setState('watching', isProduct() ? 'Zielt' : isRoom() ? 'Erfasst' : 'Schaut');
     try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {}
     loop();
   }
@@ -924,12 +1105,14 @@
   /* ---------- Modus und Fokus ---------- */
   function restartThinking() { gen++; if (abort) abort.abort(); boxData = []; layoutBoxes(); lastRun = 0; if (poke) poke(); }
   function setMode(mode, hint) {
-    cfg.mode = mode === 'product' ? 'product' : 'observe'; persist();
+    cfg.mode = MODES.includes(mode) ? mode : 'observe'; persist();
+    if (isRoom()) enableCompass();   // zuerst, damit die Freigabe-Abfrage des iPhones noch zum Tippen gehört
     document.body.dataset.mode = cfg.mode;
     [...$('mode').children].forEach(b => b.classList.toggle('on', b.dataset.v === cfg.mode));
     restartThinking();
     resetProduct(hint);
-    if (running) setState('watching', isProduct() ? 'Zielt' : 'Schaut');
+    if (isRoom()) { $('rSee').classList.remove('err'); renderRoom(); }
+    if (running) setState('watching', isProduct() ? 'Zielt' : isRoom() ? 'Erfasst' : 'Schaut');
   }
   function renderFocus() {
     const cur = cfg.focus.trim();
@@ -952,6 +1135,13 @@
   document.addEventListener('click', () => $('focusPop').classList.remove('open'));
   [...$('mode').children].forEach(b => { b.onclick = () => { if (b.dataset.v !== cfg.mode) setMode(b.dataset.v); }; });
   $('pNew').onclick = () => { restartThinking(); resetProduct(); };
+  $('rCompass').onclick = () => enableCompass();
+  $('rClear').onclick = () => { room = { items: [], frames: 0 }; $('rSee').textContent = ''; $('rMeta').textContent = ''; restartThinking(); renderRoom(); };
+  $('rCopy').onclick = async () => {
+    const b = $('rCopy');
+    try { await navigator.clipboard.writeText(roomText()); b.textContent = 'Kopiert'; } catch (e) { b.textContent = 'Kopieren nicht möglich'; }
+    setTimeout(() => { b.textContent = 'Liste kopieren'; }, 1800);
+  };
   $('pGo').onclick = () => { if (prod.art && running) { prod.doneKey = ''; forceResearch = true; $('pGo').disabled = true; if (poke) poke(); } };
 
   /* ---------- Einstellungen ---------- */
