@@ -9,12 +9,13 @@
   :root {
     --bg: #0b0c0e;
     --ink: #f3efe6;
-    --dim: rgba(243, 239, 230, .62);
-    --faint: rgba(243, 239, 230, .28);
+    --dim: rgba(243, 239, 230, .64);
+    --faint: rgba(243, 239, 230, .3);
     --accent: #ffb454;
     --live: #5ee08a;
     --err: #ff7a6b;
-    --panel: rgba(16, 17, 20, .92);
+    --glass: rgba(11, 12, 14, .5);
+    --panel: rgba(16, 17, 20, .94);
     --line: rgba(243, 239, 230, .14);
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
     --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
@@ -23,66 +24,200 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); overflow: hidden; overscroll-behavior: none; }
   button, input, select, textarea { font: inherit; color: inherit; }
-  button { cursor: pointer; }
+  button { cursor: pointer; touch-action: manipulation; }
+  .hide { display: none !important; }
 
-  #stage { position: fixed; inset: 0; background: #000; }
-  #cam { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
+  #stage { position: fixed; inset: 0; background: #000; overflow: hidden; }
+  #cam { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; opacity: 0; transition: opacity .45s; }
+  body.running #cam { opacity: 1; }
   #cam.mirror { transform: scaleX(-1); }
   #shade { position: absolute; inset: 0; pointer-events: none;
-    background: linear-gradient(to bottom, rgba(0,0,0,.55) 0, rgba(0,0,0,0) 18%, rgba(0,0,0,0) 38%, rgba(0,0,0,.72) 62%, rgba(0,0,0,.93) 100%); }
+    background: linear-gradient(to bottom, rgba(0,0,0,.5) 0, rgba(0,0,0,0) 15%, rgba(0,0,0,0) 52%, rgba(0,0,0,.6) 76%, rgba(0,0,0,.9) 100%); }
+  body.thoughts[data-mode="observe"] #shade { background: linear-gradient(to bottom, rgba(0,0,0,.5) 0, rgba(0,0,0,0) 15%, rgba(0,0,0,.1) 36%, rgba(0,0,0,.74) 58%, rgba(0,0,0,.94) 100%); }
+
+  /* Glasflächen */
+  .glass { background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3); }
+  .icon { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; padding: 0; }
+  .icon svg { width: 19px; height: 19px; stroke: var(--ink); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .icon:active, .pill:active { transform: scale(.95); }
 
   /* Kopfzeile */
-  #top { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 10px;
-    padding: calc(env(safe-area-inset-top) + 12px) 14px 10px; }
-  #status { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
-    font: 600 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+  #top { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 8px;
+    padding: calc(env(safe-area-inset-top) + 12px) 12px 10px; }
+  #status { display: flex; align-items: center; gap: 8px; min-width: 0; height: 40px; padding: 0 14px 0 12px; border-radius: 20px;
+    font: 600 10.5px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--ink); }
   #status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: none; }
-  body[data-state="watching"] #dot { background: var(--live); }
+  body[data-state="watching"] #dot { background: var(--live); box-shadow: 0 0 0 3px rgba(94, 224, 138, .18); }
   body[data-state="thinking"] #dot { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
   body[data-state="error"] #dot { background: var(--err); }
   @keyframes pulse { 50% { opacity: .25; transform: scale(.7); } }
-  .icon { width: 42px; height: 42px; flex: none; border: 1px solid var(--line); border-radius: 50%;
-    background: rgba(0,0,0,.35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    display: grid; place-items: center; padding: 0; }
-  .icon svg { width: 20px; height: 20px; stroke: var(--ink); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .pill { height: 40px; border-radius: 20px; color: var(--ink); font: 600 13px/1 var(--sans); padding: 0 14px; display: flex; align-items: center; gap: 7px; min-width: 0; }
+  #focusBtn { margin-left: auto; flex: 0 1 auto; max-width: 46%; }
+  #focusBtn b { font: 600 10px/1 var(--mono); letter-spacing: .09em; color: var(--accent); text-transform: uppercase; flex: none; }
+  #focusBtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #focusPop { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 60px); z-index: 5; display: none; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 18px; padding: 14px; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 18px 50px rgba(0,0,0,.5); }
+  #focusPop.open { display: block; animation: rise .18s ease-out; }
+  #focusPop .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  #focusPop .chips button { border: 1px solid var(--line); background: transparent; border-radius: 16px; padding: 9px 12px; font: 500 13.5px/1 var(--sans); color: var(--ink); }
+  #focusPop .chips button.on { background: var(--accent); border-color: var(--accent); color: #1a1205; font-weight: 700; }
+  #focusPop form { display: flex; gap: 8px; margin-top: 12px; }
+  #focusPop form input { flex: 1; min-width: 0; }
+  #focusPop form button { border: 0; border-radius: 12px; background: var(--ink); color: #111; font: 700 14px/1 var(--sans); padding: 0 16px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 
-  /* Gedankenstrom */
-  #feedWrap { position: absolute; left: 0; right: 0; bottom: 0; top: 34%; display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 0 18px calc(env(safe-area-inset-bottom) + 96px); pointer-events: none; }
-  #feed { overflow-y: auto; pointer-events: auto; max-height: 100%; scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%); mask-image: linear-gradient(to bottom, transparent 0, #000 22%); }
+  /* Begrüßung, solange die Kamera aus ist */
+  #intro { position: absolute; left: 26px; right: 26px; max-width: 508px; margin: 0 auto; top: calc(env(safe-area-inset-top) + 21%); pointer-events: none; transition: opacity .3s; }
+  body.running #intro { opacity: 0; }
+  #intro b { font: 600 10.5px/1 var(--mono); letter-spacing: .14em; color: var(--accent); }
+  #intro h1 { font: 400 36px/1.12 var(--serif); margin: 14px 0 14px; letter-spacing: -.01em; text-wrap: balance; }
+  #intro p { font-size: 15.5px; line-height: 1.5; color: var(--dim); margin: 0; max-width: 34ch; text-wrap: pretty; }
+  #intro ul { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 11px; }
+  #intro li { display: flex; align-items: center; gap: 11px; font-size: 14px; color: var(--ink); }
+  #intro li i { width: 26px; height: 26px; flex: none; border-radius: 8px; border: 1px solid var(--line); display: grid; place-items: center; }
+  #intro li svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Rahmen um erkannte Dinge: folgen dem Bild, nicht dem Bildschirm */
+  #boxes { position: absolute; inset: 0; pointer-events: none; overflow: hidden; transition: opacity .3s; }
+  body.lost #boxes { opacity: .45; }
+  .box { position: absolute; left: 0; top: 0; pointer-events: auto; border-radius: 4px; --c: rgba(243, 239, 230, .96); will-change: transform;
+    border: 1px solid rgba(243, 239, 230, .3); box-shadow: 0 0 0 1px rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(0, 0, 0, .18);
+    background:
+      linear-gradient(var(--c), var(--c)) 0 0 / 18px 2.5px, linear-gradient(var(--c), var(--c)) 0 0 / 2.5px 18px,
+      linear-gradient(var(--c), var(--c)) 100% 0 / 18px 2.5px, linear-gradient(var(--c), var(--c)) 100% 0 / 2.5px 18px,
+      linear-gradient(var(--c), var(--c)) 0 100% / 18px 2.5px, linear-gradient(var(--c), var(--c)) 0 100% / 2.5px 18px,
+      linear-gradient(var(--c), var(--c)) 100% 100% / 18px 2.5px, linear-gradient(var(--c), var(--c)) 100% 100% / 2.5px 18px;
+    background-repeat: no-repeat; animation: boxIn .28s ease-out; }
+  @keyframes boxIn { from { opacity: 0; scale: 1.07; } }
+  .box span { position: absolute; left: 0; top: 0; max-width: 180px; display: flex; align-items: center; gap: 6px; padding: 5px 9px 5px 7px; border-radius: 9px;
+    background: rgba(11, 12, 14, .8); color: var(--ink); font: 600 12px/1.1 var(--sans); white-space: nowrap; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
+  .box span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: hsl(var(--h) 90% 64%); flex: none; }
+  .box span em { font-style: normal; overflow: hidden; text-overflow: ellipsis; }
+  .box.mem { --c: rgba(243, 239, 230, .55); border-style: dashed; }
+  .box.mem span { color: var(--dim); }
+  .box.target { --c: var(--accent); border-color: rgba(255, 180, 84, .5); }
+  .box.target span { background: var(--accent); color: #1a1205; }
+  .box.target span::before { background: #1a1205; }
+  .box.seek { --c: var(--accent); border-color: var(--accent); animation: found 1.1s ease-out 2; }
+  @keyframes found { 0% { box-shadow: 0 0 0 0 rgba(255, 180, 84, .7); } 100% { box-shadow: 0 0 0 26px rgba(255, 180, 84, 0); } }
+  /* Wegweiser am Rand zu gemerkten Dingen außerhalb des Bilds */
+  .ptr { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px 0 9px; border-radius: 14px; max-width: 128px;
+    background: rgba(11, 12, 14, .74); border: 1px solid var(--line); color: var(--ink); font: 600 11.5px/1 var(--sans); white-space: nowrap; pointer-events: auto; will-change: transform; animation: boxIn .28s ease-out; }
+  .ptr i { width: 0; height: 0; flex: none; border-left: 8px solid hsl(var(--h) 90% 64%); border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+  .ptr span { overflow: hidden; text-overflow: ellipsis; }
+  .ptr.seek { background: var(--accent); border-color: var(--accent); color: #1a1205; height: 34px; border-radius: 17px; font-size: 13px; z-index: 1; }
+  .ptr.seek i { border-left-color: #1a1205; }
+
+  /* Fadenkreuz im Produkt-Modus */
+  #aim { position: absolute; left: 50%; top: 30%; width: 68px; height: 68px; margin: -34px 0 0 -34px; pointer-events: none; display: none; }
+  body[data-mode="product"].running #aim { display: block; }
+  #aim i { position: absolute; inset: 0; border: 1.5px solid var(--ink); border-radius: 50%; opacity: .6; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+  #aim::before, #aim::after { content: ""; position: absolute; background: var(--ink); box-shadow: 0 0 0 .5px rgba(0,0,0,.5); }
+  #aim::before { left: 50%; top: 24px; width: 2px; height: 20px; margin-left: -1px; }
+  #aim::after { top: 50%; left: 24px; height: 2px; width: 20px; margin-top: -1px; }
+
+  /* Unterer Bereich: Gedanken, Anzeige, Modus, Auslöser */
+  #dock { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; max-height: 74%; display: flex; flex-direction: column; gap: 12px;
+    padding: 0 12px calc(env(safe-area-inset-bottom) + 16px); pointer-events: none; }
+  #dock > * { pointer-events: auto; flex: none; }
+  #feed { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 0 6px; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 26%); mask-image: linear-gradient(to bottom, transparent 0, #000 26%); }
   #feed::-webkit-scrollbar { display: none; }
+  body:not(.thoughts) #feed, body:not([data-mode="observe"]) #feed { display: none; }
   .entry { padding: 12px 0 2px; opacity: .42; transition: opacity .4s; }
   .entry:last-child { opacity: 1; }
   .entry:nth-last-child(2) { opacity: .62; }
   .see { font: 600 11px/1.45 var(--mono); letter-spacing: .04em; color: var(--accent); margin: 0 0 6px; }
   .see b { font-weight: 600; opacity: .7; letter-spacing: .1em; margin-right: 6px; }
-  .think { font: 400 19px/1.42 var(--serif); margin: 0; text-wrap: pretty; }
-  .entry:not(:last-child) .think { font-size: 16px; }
+  .think { font: 400 18px/1.42 var(--serif); margin: 0; text-wrap: pretty; text-shadow: 0 1px 8px rgba(0,0,0,.6); }
+  .entry:not(:last-child) .think { font-size: 15.5px; }
   .entry.live .think::after { content: ""; display: inline-block; width: 7px; height: 1em; margin-left: 3px; vertical-align: -2px; background: var(--accent); animation: pulse 1s steps(2) infinite; }
-  .entry.err .think { font: 500 14px/1.45 var(--sans); color: var(--err); }
   .meta { font: 500 10px/1 var(--mono); color: var(--faint); margin-top: 6px; letter-spacing: .06em; }
-  #hint { font: 400 17px/1.45 var(--serif); color: var(--dim); padding-bottom: 6px; }
 
-  /* Fußleiste */
-  #bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: 22px;
-    padding: 14px 18px calc(env(safe-area-inset-bottom) + 18px); }
-  #go { height: 58px; min-width: 190px; padding: 0 28px; border: 0; border-radius: 29px; background: var(--ink); color: #111;
-    font: 700 15px/1 var(--sans); letter-spacing: .02em; display: flex; align-items: center; justify-content: center; gap: 10px; }
-  #go:active { transform: scale(.97); }
-  body.running #go { background: rgba(0,0,0,.45); color: var(--ink); border: 1px solid var(--line); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-  #go i { width: 10px; height: 10px; border-radius: 50%; background: #d8402f; display: block; }
-  body.running #go i { border-radius: 2px; background: var(--ink); }
+  #cap { position: relative; overflow: hidden; width: 100%; text-align: left; display: grid; grid-template-columns: 1fr auto; column-gap: 12px; align-items: center;
+    border-radius: 18px; padding: 12px 14px 13px 16px; color: var(--ink); }
+  body.fresh #cap { display: none; }
+  #cap::before { content: ""; position: absolute; left: 0; top: 0; height: 2px; width: 34%; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0; }
+  body[data-state="thinking"] #cap::before { opacity: 1; animation: sweep 1.25s ease-in-out infinite; }
+  @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+  #capLabel { grid-column: 1 / -1; font: 600 10px/1 var(--mono); letter-spacing: .1em; color: var(--accent); margin-bottom: 7px; text-transform: uppercase; }
+  #capText { font: 400 20px/1.25 var(--serif); text-wrap: pretty; min-width: 0; overflow-wrap: anywhere; }
+  #capText.err { font: 500 14px/1.45 var(--sans); color: var(--err); }
+  body[data-mode="room"] #capText:not(.err) { font: 400 15px/1.42 var(--sans); color: var(--dim); }
+  #capArrow { width: 9px; height: 9px; border-right: 2px solid var(--dim); border-top: 2px solid var(--dim); transform: rotate(-45deg); margin: 4px 4px 0 0; transition: transform .2s; }
+  body.thoughts[data-mode="observe"] #capArrow { transform: rotate(135deg); margin-top: -4px; }
+  body[data-mode="room"] #capArrow { transform: rotate(45deg); margin: 0 6px 0 0; }
+  #capMeta { grid-column: 1 / -1; display: block; font: 500 10px/1 var(--mono); color: var(--faint); letter-spacing: .06em; margin-top: 8px; }
+  #capMeta:empty { display: none; }
+  body[data-mode="product"] #cap { display: none; }
 
-  /* Einstellungen */
-  #sheet { position: fixed; inset: 0; z-index: 10; display: none; background: rgba(0,0,0,.55); }
-  #sheet.open { display: block; }
-  #panel { position: absolute; left: 0; right: 0; bottom: 0; max-height: 92%; overflow-y: auto; background: var(--panel);
-    border-top: 1px solid var(--line); border-radius: 22px 22px 0 0; padding: 20px 18px calc(env(safe-area-inset-bottom) + 22px);
+  #product { display: none; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 14px 14px 12px;
+    flex: 0 1 auto; min-height: 0; overflow-y: auto; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  body[data-mode="product"] #product { display: block; }
+  #pHead { display: flex; flex-wrap: wrap; gap: 6px; }
+  #pHead:empty { display: none; }
+  .chip { font: 600 13px/1 var(--sans); padding: 7px 9px; border-radius: 10px; background: rgba(255,255,255,.09); }
+  .chip b { font: 600 9.5px/1 var(--mono); letter-spacing: .09em; color: var(--accent); margin-right: 6px; text-transform: uppercase; }
+  .chip.unknown { color: var(--faint); font-weight: 500; }
+  .chip.unknown b { color: var(--faint); }
+  #pAsk { margin: 12px 0 0; font: 400 18px/1.38 var(--serif); text-wrap: pretty; }
+  #pHead:empty + #pAsk { margin-top: 0; }
+  #pAsk.err { font: 500 14px/1.45 var(--sans); color: var(--err); }
+  #pThink { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--dim); }
+  #pThink:empty, #pMeta:empty { display: none; }
+  #pMeta { font: 500 10px/1 var(--mono); color: var(--faint); margin-top: 8px; letter-spacing: .06em; }
+  #pRes { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 11px; }
+  #pRes .st { font: 600 10.5px/1.4 var(--mono); letter-spacing: .08em; color: var(--dim); margin-bottom: 6px; }
+  #pRes .r { display: grid; grid-template-columns: 64px 1fr; gap: 8px; padding: 4px 0; font-size: 14px; line-height: 1.42; }
+  #pRes .r b { font: 600 10px/2 var(--mono); letter-spacing: .08em; color: var(--accent); }
+  #pRes .src { margin-top: 8px; font-size: 12px; color: var(--dim); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  #pRes .src a { color: var(--accent); }
+  .acts { display: flex; gap: 8px; margin-top: 12px; }
+  .acts button { flex: 1; height: 44px; border-radius: 13px; border: 1px solid var(--line); background: transparent; font: 600 13.5px/1 var(--sans); color: var(--ink); }
+  .acts button.pri { background: var(--accent); border-color: var(--accent); color: #1a1205; }
+  .acts button:disabled { opacity: .38; }
+
+  #mode { align-self: center; display: flex; padding: 3px; gap: 2px; border-radius: 21px; }
+  #mode button { border: 0; background: none; height: 34px; border-radius: 17px; padding: 0 16px; font: 600 13px/1 var(--sans); color: var(--dim); transition: background .18s, color .18s; }
+  #mode button.on { background: var(--ink); color: #111; }
+
+  #bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 6px; }
+  #mapBtn { justify-self: start; position: relative; width: 58px; height: 58px; border-radius: 50%; padding: 0; }
+  #mapBtn svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  #mapN { position: absolute; right: -4px; top: -4px; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 11px; background: var(--accent); color: #1a1205;
+    font: 700 11px/21px var(--sans); text-align: center; }
+  #mapN:empty { display: none; }
+  #go { justify-self: center; height: 60px; min-width: 172px; padding: 0 28px; border: 0; border-radius: 30px; background: var(--ink); color: #111;
+    font: 700 15.5px/1 var(--sans); letter-spacing: .01em; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.45); transition: background .2s, color .2s; }
+  #go:active, #mapBtn:active, #flip:active { transform: scale(.96); }
+  body.running #go { background: var(--glass); color: var(--ink); border: 1px solid var(--line); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: none; }
+  #go i { width: 11px; height: 11px; border-radius: 50%; background: #d8402f; display: block; transition: border-radius .2s; }
+  body.running #go i { border-radius: 3px; background: var(--ink); }
+  #flip { justify-self: end; width: 58px; height: 58px; }
+  #flip svg { width: 23px; height: 23px; }
+
+  /* Karte der gemerkten Dinge */
+  .radar .ring { fill: none; stroke: rgba(243, 239, 230, .16); stroke-width: 1; }
+  .radar .cone { fill: rgba(255, 180, 84, .16); stroke: rgba(255, 180, 84, .55); stroke-width: 1; stroke-linejoin: round; }
+  .radar .lab { font: 500 7px var(--mono); fill: var(--faint); }
+  .radar .num { font: 700 9px var(--sans); fill: #0b0c0e; text-anchor: middle; }
+  .radar .me { fill: var(--ink); }
+  .radar .halo { fill: none; stroke: var(--accent); stroke-width: 2; }
+  .radar .off { opacity: .55; }
+
+  /* Bögen von unten: Karte und Einstellungen */
+  .sheet { position: fixed; inset: 0; z-index: 10; display: none; background: rgba(0,0,0,.5); }
+  .sheet.open { display: block; animation: fade .2s ease-out; }
+  @keyframes fade { from { opacity: 0; } }
+  .panel { position: absolute; left: 0; right: 0; bottom: 0; max-width: 640px; margin: 0 auto; max-height: 92%; overflow-y: auto; background: var(--panel);
+    border-top: 1px solid var(--line); border-radius: 24px 24px 0 0; padding: 10px 18px calc(env(safe-area-inset-bottom) + 22px);
     backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
-  #panel h2 { font: 700 20px/1.2 var(--sans); margin: 0 0 4px; }
-  #panel p.lead { margin: 0 0 16px; color: var(--dim); font-size: 14px; line-height: 1.45; }
+  .sheet.open .panel { animation: up .26s cubic-bezier(.2, .8, .2, 1); }
+  @keyframes up { from { transform: translateY(40px); opacity: 0; } }
+  .panel::before { content: ""; display: block; width: 38px; height: 4px; border-radius: 2px; background: var(--faint); margin: 0 auto 14px; }
+  .panel h2 { font: 700 20px/1.2 var(--sans); margin: 0 0 4px; }
+  .panel p.lead { margin: 0 0 16px; color: var(--dim); font-size: 14px; line-height: 1.45; }
   label { display: block; font: 600 11px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--dim); margin: 16px 0 7px; }
   input[type=text], input[type=password], input[type=url], select, textarea { width: 100%; background: rgba(255,255,255,.06); border: 1px solid var(--line);
     border-radius: 12px; padding: 13px 12px; font-size: 16px; outline: none; -webkit-appearance: none; appearance: none; }
@@ -107,182 +242,89 @@
   .seg button { flex: 1; padding: 11px 0; border-radius: 10px; border: 1px solid var(--line); background: transparent; font: 600 14px/1 var(--sans); color: var(--dim); }
   .seg button.on { background: var(--ink); color: #111; border-color: var(--ink); }
   #save { width: 100%; height: 54px; margin-top: 22px; border: 0; border-radius: 27px; background: var(--accent); color: #1a1205; font: 700 16px/1 var(--sans); }
-  #wipe { width: 100%; margin-top: 12px; padding: 10px; background: none; border: 0; color: var(--dim); font-size: 13px; text-decoration: underline; }
+  #wipe, #motionBtn { width: 100%; margin-top: 12px; padding: 10px; background: none; border: 0; color: var(--dim); font-size: 13px; text-decoration: underline; }
 
-  /* Werkzeugzeile: Fokus und Modus */
-  #tools { position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top) + 64px); display: flex; gap: 8px; padding: 0 14px; align-items: center; }
-  .pill { height: 36px; border-radius: 18px; border: 1px solid var(--line); background: rgba(0,0,0,.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    color: var(--ink); font: 600 13px/1 var(--sans); padding: 0 13px; display: flex; align-items: center; gap: 7px; min-width: 0; }
-  #focusBtn { flex: 0 1 auto; max-width: 40%; }
-  #focusBtn b { font: 600 10px/1 var(--mono); letter-spacing: .09em; color: var(--accent); text-transform: uppercase; flex: none; }
-  #focusBtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #mode { margin-left: auto; flex: none; display: flex; padding: 3px; gap: 2px; height: 36px; border-radius: 18px; border: 1px solid var(--line);
-    background: rgba(0,0,0,.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-  #mode button { border: 0; background: none; border-radius: 15px; padding: 0 10px; font: 600 13px/1 var(--sans); color: var(--dim); }
-  #mode button.on { background: var(--ink); color: #111; }
-  #focusPop { position: absolute; left: 14px; right: 14px; top: calc(env(safe-area-inset-top) + 108px); z-index: 5; display: none; background: var(--panel);
-    border: 1px solid var(--line); border-radius: 16px; padding: 14px; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
-  #focusPop.open { display: block; }
-  #focusPop .chips { display: flex; flex-wrap: wrap; gap: 7px; }
-  #focusPop .chips button { border: 1px solid var(--line); background: transparent; border-radius: 16px; padding: 9px 12px; font: 500 13.5px/1 var(--sans); color: var(--ink); }
-  #focusPop .chips button.on { background: var(--accent); border-color: var(--accent); color: #1a1205; font-weight: 700; }
-  #focusPop form { display: flex; gap: 8px; margin-top: 12px; }
-  #focusPop form input { flex: 1; min-width: 0; }
-  #focusPop form button { border: 0; border-radius: 12px; background: var(--ink); color: #111; font: 700 14px/1 var(--sans); padding: 0 16px; }
-
-  /* Rahmen um erkannte Dinge */
-  #boxes { position: absolute; inset: 0; pointer-events: none; overflow: hidden; transition: opacity .35s; }
-  .box { position: absolute; border: 2px solid hsl(var(--h) 92% 64%); border-radius: 7px; pointer-events: auto; box-shadow: 0 0 0 1px rgba(0,0,0,.4), inset 0 0 0 1px rgba(0,0,0,.25); }
-  .box span { position: absolute; left: -2px; bottom: 100%; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    background: hsl(var(--h) 92% 64%); color: #0b0c0e; font: 700 11.5px/1 var(--sans); padding: 4px 7px; border-radius: 6px 6px 6px 0; }
-  .box.low span { bottom: auto; top: -2px; border-radius: 6px 0 6px 0; }
-  .box.target { border-width: 3px; border-color: var(--accent); }
-  .box.target span { background: var(--accent); }
-
-  /* Produkt-Modus */
-  #aim { position: absolute; left: 50%; top: 28%; width: 68px; height: 68px; margin: -34px 0 0 -34px; pointer-events: none; display: none; }
-  body[data-mode="product"] #aim { display: block; }
-  #aim i { position: absolute; inset: 0; border: 1.5px solid var(--ink); border-radius: 50%; opacity: .6; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
-  #aim::before, #aim::after { content: ""; position: absolute; background: var(--ink); box-shadow: 0 0 0 .5px rgba(0,0,0,.5); }
-  #aim::before { left: 50%; top: 24px; width: 2px; height: 20px; margin-left: -1px; }
-  #aim::after { top: 50%; left: 24px; height: 2px; width: 20px; margin-top: -1px; }
-  #product { display: none; pointer-events: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 14px 14px 12px;
-    max-height: 100%; overflow-y: auto; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
-  body[data-mode="product"] #product { display: block; }
-  body[data-mode="product"] #feed { display: none; }
-  body[data-mode="product"] #feedWrap { top: 40%; padding-left: 12px; padding-right: 12px; }
-  #pHead { display: flex; flex-wrap: wrap; gap: 6px; }
-  #pHead:empty { display: none; }
-  .chip { font: 600 13px/1 var(--sans); padding: 7px 9px; border-radius: 10px; background: rgba(255,255,255,.09); }
-  .chip b { font: 600 9.5px/1 var(--mono); letter-spacing: .09em; color: var(--accent); margin-right: 6px; text-transform: uppercase; }
-  .chip.unknown { color: var(--faint); font-weight: 500; }
-  .chip.unknown b { color: var(--faint); }
-  #pAsk { margin: 12px 0 0; font: 400 18px/1.38 var(--serif); text-wrap: pretty; }
-  #pHead:empty + #pAsk { margin-top: 0; }
-  #pAsk.err { font: 500 14px/1.45 var(--sans); color: var(--err); }
-  #pThink { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--dim); }
-  #pThink:empty, #pMeta:empty { display: none; }
-  #pMeta { font: 500 10px/1 var(--mono); color: var(--faint); margin-top: 8px; letter-spacing: .06em; }
-  #pRes { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 11px; }
-  #pRes .st { font: 600 10.5px/1.4 var(--mono); letter-spacing: .08em; color: var(--dim); margin-bottom: 6px; }
-  #pRes .r { display: grid; grid-template-columns: 64px 1fr; gap: 8px; padding: 4px 0; font-size: 14px; line-height: 1.42; }
-  #pRes .r b { font: 600 10px/2 var(--mono); letter-spacing: .08em; color: var(--accent); }
-  #pRes .src { margin-top: 8px; font-size: 12px; color: var(--dim); display: flex; flex-wrap: wrap; gap: 4px 10px; }
-  #pRes .src a { color: var(--accent); }
-  #pActs { display: flex; gap: 8px; margin-top: 12px; }
-  #pActs button { flex: 1; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: transparent; font: 600 13.5px/1 var(--sans); color: var(--ink); }
-  #pActs button.pri { background: var(--accent); border-color: var(--accent); color: #1a1205; }
-  #pActs button:disabled { opacity: .38; }
-
-  /* Raum-Modus */
-  #roomP { display: none; pointer-events: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 13px 14px 12px;
-    max-height: 100%; overflow-y: auto; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
-  body[data-mode="room"] #roomP { display: block; }
-  body[data-mode="room"] #feed { display: none; }
-  body[data-mode="room"] #feedWrap { top: 40%; padding-left: 12px; padding-right: 12px; }
-  #rTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 26px; }
-  #rTitle { font: 600 10.5px/1.3 var(--mono); letter-spacing: .09em; color: var(--dim); }
-  #rCompass { border: 0; border-radius: 12px; background: var(--accent); color: #1a1205; font: 700 12px/1 var(--sans); padding: 7px 10px; flex: none; }
-  #rCompass:disabled { background: none; color: var(--err); padding: 0; font-weight: 600; }
-  #rBody { display: flex; gap: 12px; margin-top: 10px; align-items: flex-start; }
-  #rMap { width: 150px; height: 150px; flex: none; overflow: visible; }
-  #rList { list-style: none; margin: 0; padding: 0; flex: 1; min-width: 0; max-height: 150px; overflow-y: auto; }
-  #rList li { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; padding: 5px 0; align-items: center; }
-  #rList li i { grid-row: span 2; width: 22px; height: 22px; border-radius: 50%; background: hsl(var(--h) 92% 64%); color: #0b0c0e; font: 700 11px/22px var(--sans); text-align: center; font-style: normal; }
-  #rList li b { font: 600 14px/1.25 var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #rList li span { font-size: 12px; line-height: 1.3; color: var(--dim); }
-  #rList li span:empty { display: none; }
-  #rSee { margin: 10px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--dim); }
-  #rSee.err { color: var(--err); }
-  #rSee:empty, #rMeta:empty { display: none; }
-  #rMeta { font: 500 10px/1 var(--mono); color: var(--faint); margin-top: 8px; letter-spacing: .06em; }
-  #rActs { display: flex; gap: 8px; margin-top: 12px; }
-  #rActs button { flex: 1; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: transparent; font: 600 13.5px/1 var(--sans); color: var(--ink); }
-  #rActs button.pri { background: var(--accent); border-color: var(--accent); color: #1a1205; }
-  #rActs button:disabled { opacity: .38; }
-
-  /* Kompakte Anzeige: worauf die KI gerade schaut; die Gedanken klappen auf Tippen aus */
-  #feed { flex: 0 1 auto; min-height: 0; }
-  body:not(.thoughts) #feed { display: none; }
-  #cap { pointer-events: auto; flex: none; margin-top: 10px; width: 100%; text-align: left; display: grid; grid-template-columns: 1fr auto; column-gap: 12px; align-items: center;
-    background: rgba(0,0,0,.5); border: 1px solid var(--line); border-radius: 16px; padding: 11px 14px 12px; color: var(--ink);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-  #cap b { grid-column: 1 / -1; font: 600 10px/1 var(--mono); letter-spacing: .1em; color: var(--accent); margin-bottom: 7px; }
-  #capText { font: 400 21px/1.25 var(--serif); text-wrap: pretty; min-width: 0; overflow-wrap: anywhere; }
-  #capText.err { font: 500 14px/1.45 var(--sans); color: var(--err); }
-  #capArrow { width: 10px; height: 10px; border-right: 2px solid var(--dim); border-top: 2px solid var(--dim); transform: rotate(-45deg); margin: 4px 4px 0 0; transition: transform .2s; }
-  body.thoughts #capArrow { transform: rotate(135deg); margin-top: -4px; }
-  #capMeta { grid-column: 1 / -1; display: block; font: 500 10px/1 var(--mono); color: var(--faint); letter-spacing: .06em; margin-top: 8px; }
-  #capMeta:empty { display: none; }
-  body[data-mode="product"] #cap, body[data-mode="room"] #cap { display: none; }
-
-  /* Draufsicht mit gemerkten Dingen */
-  .radar .ring { fill: none; stroke: var(--line); stroke-width: 1; }
-  .radar .cone { fill: rgba(255, 180, 84, .16); stroke: rgba(255, 180, 84, .5); stroke-width: 1; }
-  .radar .lab { font: 500 7px var(--mono); fill: var(--faint); }
-  .radar .num { font: 700 9px var(--sans); fill: #0b0c0e; text-anchor: middle; }
-  .radar .me { fill: var(--ink); }
-  #mini { position: absolute; right: 14px; top: calc(env(safe-area-inset-top) + 112px); width: 96px; height: 96px; padding: 5px; border-radius: 50%; overflow: visible;
-    background: rgba(0,0,0,.45); border: 1px solid var(--line); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-  #mini .ring { stroke: rgba(243, 239, 230, .22); }
-  .hide { display: none !important; }
+  #mapHead { display: flex; align-items: baseline; gap: 10px; }
+  #mapHead h2 { margin: 0; }
+  #mapCount { font: 600 10.5px/1 var(--mono); letter-spacing: .09em; color: var(--dim); text-transform: uppercase; }
+  #bigMap { display: block; width: min(250px, 66vw); height: min(250px, 66vw); margin: 16px auto 4px; overflow: visible; }
+  #mapEmpty { text-align: center; color: var(--dim); font-size: 14px; line-height: 1.5; margin: 6px auto 4px; max-width: 32ch; }
+  #mapList { list-style: none; margin: 10px 0 0; padding: 0; }
+  #mapList li { display: grid; grid-template-columns: 26px 1fr auto; column-gap: 11px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+  #mapList li > i { width: 26px; height: 26px; border-radius: 50%; background: hsl(var(--h) 90% 64%); color: #0b0c0e; font: 700 12px/26px var(--sans); text-align: center; font-style: normal; }
+  #mapList li div { min-width: 0; }
+  #mapList li b { display: block; font: 600 15px/1.25 var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #mapList li span { display: block; font-size: 12.5px; line-height: 1.35; color: var(--dim); }
+  #mapList li button { height: 34px; padding: 0 13px; border-radius: 17px; border: 1px solid var(--line); background: transparent; font: 600 12.5px/1 var(--sans); color: var(--ink); }
+  #mapList li.vis span { color: var(--live); }
 </style>
 </head>
-<body data-state="idle">
+<body data-state="idle" class="fresh">
 
 <div id="stage">
   <video id="cam" playsinline muted autoplay></video>
   <div id="shade"></div>
   <div id="boxes"></div>
   <div id="aim"><i></i></div>
-  <svg id="mini" class="radar hide" viewBox="-100 -100 200 200" role="img" aria-label="Karte der gemerkten Dinge"></svg>
 
-  <div id="top">
-    <div id="status"><i id="dot"></i><span id="statusText">Bereit</span></div>
-    <button class="icon" id="flip" aria-label="Kamera wechseln">
-      <svg viewBox="0 0 24 24"><path d="M4 9a2 2 0 0 1 2-2h1.5l1.2-2h6.6l1.2 2H18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9.5 12.5a2.7 2.7 0 0 1 4.6-1.6l.9.9M14.5 14a2.7 2.7 0 0 1-4.6 1.6l-.9-.9"/><path d="M15 9.6v2.2h-2.2M9 16.9v-2.2h2.2"/></svg>
-    </button>
-    <button class="icon" id="gear" aria-label="Einstellungen">
-      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
-    </button>
+  <div id="intro">
+    <b>LIVE-BLICK</b>
+    <h1>Zeig mir, was du siehst.</h1>
+    <p>Ich schaue durch deine Kamera, rahme ein, was ich erkenne, und merke mir, wo es steht.</p>
+    <ul>
+      <li><i><svg viewBox="0 0 24 24"><path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/></svg></i>Rahmen bleiben beim Schwenken am Ding</li>
+      <li><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/></svg></i>Die Karte merkt sich, was wo steht</li>
+      <li><i><svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v4a6 6 0 0 1-6 6h-1a5 5 0 0 1-4.2-2.3L5 15.5a1.5 1.5 0 0 1 2.5-1.6L9 15.5"/></svg></i>Rahmen antippen für Marke und Modell</li>
+    </ul>
   </div>
 
-  <div id="tools">
-    <button class="pill" id="focusBtn"><b>Fokus</b><span id="focusText">Alles</span></button>
-    <div id="mode"><button data-v="observe">Umschau</button><button data-v="product">Produkt</button><button data-v="room">Raum</button></div>
+  <div id="top">
+    <div id="status" class="glass"><i id="dot"></i><span id="statusText">Bereit</span></div>
+    <button class="pill glass" id="focusBtn"><b>Fokus</b><span id="focusText">Alles</span></button>
+    <button class="icon glass" id="gear" aria-label="Einstellungen">
+      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+    </button>
   </div>
   <div id="focusPop">
     <div class="chips" id="focusChips"></div>
     <form id="focusForm"><input id="focusOwn" type="text" autocomplete="off" placeholder="Eigener Fokus, z. B. nur Kabel und Stecker"><button>OK</button></form>
   </div>
 
-  <div id="feedWrap">
+  <div id="dock">
     <div id="feed"></div>
-    <button id="cap" aria-expanded="false" title="Gedanken ein- oder ausklappen"><b>SCHAUT AUF</b><span id="capText">Tippe auf Start, dann zeige ich dir, was ich sehe.</span><i id="capArrow"></i><span id="capMeta"></span></button>
+    <button id="cap" class="glass" aria-expanded="false"><b id="capLabel">Schaut auf</b><span id="capText"></span><i id="capArrow"></i><span id="capMeta"></span></button>
     <div id="product">
       <div id="pHead"></div>
       <p id="pAsk"></p>
       <p id="pThink"></p>
       <div id="pMeta"></div>
-      <div id="pActs"><button id="pNew">Neues Produkt</button><button id="pGo" class="pri" disabled>Jetzt recherchieren</button></div>
+      <div class="acts"><button id="pNew">Neues Produkt</button><button id="pGo" class="pri" disabled>Jetzt recherchieren</button></div>
       <div id="pRes" class="hide"></div>
     </div>
-    <div id="roomP">
-      <div id="rTop"><span id="rTitle">RAUM</span><button id="rCompass" class="hide">Lagesensor aktivieren</button></div>
-      <div id="rBody"><svg id="rMap" class="radar hide" viewBox="-100 -100 200 200"></svg><ol id="rList"></ol></div>
-      <p id="rSee"></p>
-      <div id="rMeta"></div>
-      <div id="rActs"><button id="rClear" disabled>Leeren</button><button id="rCopy" class="pri" disabled>Liste kopieren</button></div>
+    <div id="mode" class="glass"><button data-v="observe">Umschau</button><button data-v="product">Produkt</button><button data-v="room">Raum</button></div>
+    <div id="bar">
+      <button id="mapBtn" class="glass" aria-label="Karte der gemerkten Dinge öffnen"><svg id="mini" class="radar" viewBox="-100 -100 200 200"></svg><span id="mapN"></span></button>
+      <button id="go"><i></i><span id="goText">Start</span></button>
+      <button class="icon glass" id="flip" aria-label="Kamera wechseln">
+        <svg viewBox="0 0 24 24"><path d="M4 9a2 2 0 0 1 2-2h1.5l1.2-2h6.6l1.2 2H18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9.5 12.5a2.7 2.7 0 0 1 4.6-1.6l.9.9M14.5 14a2.7 2.7 0 0 1-4.6 1.6l-.9-.9"/><path d="M15 9.6v2.2h-2.2M9 16.9v-2.2h2.2"/></svg>
+      </button>
     </div>
-  </div>
-
-  <div id="bar">
-    <button id="go"><i></i><span id="goText">Start</span></button>
   </div>
 </div>
 
-<div id="sheet">
-  <div id="panel">
+<div id="mapSheet" class="sheet">
+  <div class="panel">
+    <div id="mapHead"><h2>Karte</h2><span id="mapCount"></span></div>
+    <svg id="bigMap" class="radar" viewBox="-108 -108 216 216" role="img" aria-label="Draufsicht: du in der Mitte, Blickrichtung oben"></svg>
+    <p id="mapEmpty"></p>
+    <ol id="mapList"></ol>
+    <div class="acts"><button id="mapClear" disabled>Leeren</button><button id="mapCopy" class="pri" disabled>Liste kopieren</button></div>
+    <button id="motionBtn" class="hide">Lagesensor zuschalten</button>
+  </div>
+</div>
+
+<div id="sheet" class="sheet">
+  <div class="panel" id="panel">
     <h2>Einstellungen</h2>
     <p class="lead">Im Demo-Zugang gehen die Kamerabilder über einen Proxy des Seitenbetreibers an Anthropic. Mit eigenem Schlüssel gehen sie direkt an den gewählten Anbieter; der Schlüssel bleibt in diesem Browser.</p>
 
@@ -325,7 +367,7 @@
     <textarea id="extra" placeholder="z. B. „Kommentiere wie ein Naturfilmer“. Den Fokus stellst du direkt auf dem Hauptbildschirm ein."></textarea>
 
     <div class="row">
-      <div>Rahmen anzeigen<small>Erkannte Dinge einrahmen. Mit Lagesensor bleiben die Rahmen beim Schwenken am Ding</small></div>
+      <div>Rahmen anzeigen<small>Erkannte Dinge einrahmen. Die Rahmen folgen dem Bild und bleiben beim Schwenken am Ding</small></div>
       <div class="sw"><input type="checkbox" id="boxesOn"><span></span></div>
     </div>
     <div class="row">
@@ -362,8 +404,9 @@
   };
   const LANG = { de: 'Deutsch', en: 'English', tr: 'Türkçe' };
   const PRESETS = ['Elektronische Geräte', 'Texte und Schilder', 'Lebensmittel', 'Pflanzen', 'Möbel', 'Werkzeug'];
-  const IDLE_MAX = 20000, IDLE_MAX_PRODUCT = 12000, HISTORY = 6, MAX_ENTRIES = 40, FRAME_TOKENS = 800;
+  const IDLE_MAX = 20000, IDLE_MAX_PRODUCT = 12000, HISTORY = 6, MAX_ENTRIES = 40, FRAME_TOKENS = 800, MAX_BOXES = 10;
   const MODES = ['observe', 'product', 'room'];
+  const WATCH = { observe: 'Schaut', product: 'Zielt', room: 'Erfasst' };
 
   const defaults = { provider: 'demo', keys: {}, models: {}, base: '', interval: 7, lang: 'de', focus: '', extra: '', mode: 'observe', boxes: true, thoughts: false, changeOnly: true, speak: false, facing: 'environment' };
   let cfg = load();
@@ -386,15 +429,15 @@
 
   const cam = $('cam'), feed = $('feed'), grab = $('grab'), tiny = $('tiny'), boxesEl = $('boxes');
   let stream = null, running = false, abort = null, wake = null, gen = 0;
-  let history = [], lastTiny = null, lastRun = 0, frames = 0, geminiLowThinking = true, claudeThinkOff = true;
-  /* things: im Raum verankerte Dinge. flat: Rahmen fest im Bild, wenn kein Lagesensor da ist. target: Ziel im Produkt-Modus. */
-  let things = [], flat = [], target = null, ori = null, oriStamp = 0, motionOn = false;
-  const boxEls = new Map();
+  let history = [], lastTiny = null, lastRun = 0, lastAsk = 0, frames = 0, geminiLowThinking = true, claudeThinkOff = true;
+  /* things: alle gemerkten Dinge, jedes mit fester Richtung im Raum. target: Ziel im Produkt-Modus. seek: Ding, zu dem der Wegweiser führt. */
+  let things = [], target = null, seek = null, seekHit = 0, nextId = 1, answers = 0, relocate = false;
   let prod = null, forceResearch = false, researching = false;
-  let roomFrames = 0;
+  let roomFrames = 0, roomSee = '';
 
   /* ---------- Anzeige ---------- */
   function setState(state, text) { document.body.dataset.state = state; $('statusText').textContent = text; }
+  const watching = () => setState('watching', seek ? 'Suche: ' + seek.n : WATCH[cfg.mode]);
   function nearBottom() { return feed.scrollHeight - feed.scrollTop - feed.clientHeight < 80; }
   function addEntry(cls) {
     const stick = nearBottom();
@@ -416,6 +459,7 @@
     const j = rest.search(new RegExp('^[ \\t]*' + MARK + '\\s*:', 'im'));
     return text.slice(0, i) + (j < 0 ? '' : rest.slice(j));
   }
+  function field(text, key) { const m = text.match(new RegExp('^[ \\t]*' + key + '\\s*:[ \\t]*(.*)$', 'mi')); return m ? m[1].trim() : ''; }
   function parse(raw) {
     let text = stripObjects(raw);
     const blick = field(text, 'BLICK');
@@ -439,8 +483,8 @@
     return p;
   }
   function showError(msg) {
+    document.body.classList.remove('fresh');
     if (isProduct()) { $('pAsk').textContent = msg; $('pAsk').classList.add('err'); return; }
-    if (isRoom()) { $('rSee').textContent = msg; $('rSee').classList.add('err'); return; }
     setCaption(msg, true);
   }
   function setCaption(text, err) { const c = $('capText'); c.textContent = text; c.classList.toggle('err', !!err); }
@@ -457,7 +501,7 @@
     cam.srcObject = stream;
     cam.classList.toggle('mirror', cfg.facing === 'user');
     await cam.play().catch(() => {});
-    lastTiny = null;
+    lastTiny = null; trk.key = null; trk.sens = null; trk.vel = null;
   }
   function closeCam() {
     if (stream) stream.getTracks().forEach(t => t.stop());
@@ -470,7 +514,7 @@
     return (e && e.message) || 'Die Kamera konnte nicht gestartet werden.';
   }
 
-  /* ---------- Bild greifen ---------- */
+  /* ---------- Bild für das Modell greifen ---------- */
   function tinyNow() {
     if (!cam.videoWidth) return null;
     const t = tiny.getContext('2d', { willReadFrequently: true });
@@ -483,6 +527,7 @@
   function snapshot() {
     const w = cam.videoWidth, h = cam.videoHeight;
     if (!w || !h) return null;
+    track(); trk.last = performance.now();   // Lage und Aufnahme sollen zum selben Videobild gehören
     const longSide = isProduct() ? 1280 : 768;   // Typenschilder brauchen mehr Auflösung
     const s = Math.min(1, longSide / Math.max(w, h));
     /* Das Bild wird mittig auf ein Quadrat gesetzt. Das Modell normiert Koordinaten mal auf Breite und Höhe getrennt,
@@ -492,27 +537,42 @@
     const c2 = grab.getContext('2d'); c2.fillStyle = '#000'; c2.fillRect(0, 0, S, S); c2.drawImage(cam, px, py, fw, fh);
     const g = tinyNow();
     const b64 = grab.toDataURL('image/jpeg', isProduct() ? 0.74 : 0.62).split(',')[1];
-    return { tinyNow: g, diff: lastTiny ? tinyDiff(g, lastTiny) : 1, b64: () => b64, ori, vw: w, vh: h, sq: { S, px, py, fw, fh } };
+    /* Die Lage der Kamera im Moment der Aufnahme: die Antwort kommt Sekunden später und wird von hier aus in den Raum gerechnet */
+    return { tinyNow: g, diff: lastTiny ? tinyDiff(g, lastTiny) : 1, b64: () => b64, pose: { R: pose.R.slice(), z: pose.z }, vw: w, vh: h, sq: { S, px, py, fw, fh } };
   }
 
-  /* ---------- Rahmen um erkannte Dinge ---------- */
-  function hue(name) { let h = 0; for (const c of String(name).toLowerCase()) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
-  /* Wo das (per object-fit: cover beschnittene) Kamerabild auf dem Bildschirm liegt */
-  function frameRect() {
-    const W = cam.clientWidth, H = cam.clientHeight, vw = cam.videoWidth, vh = cam.videoHeight;
-    if (!W || !H || !vw || !vh) return null;
-    const s = Math.max(W / vw, H / vh);
-    return { W, H, w: vw * s, h: vh * s, ox: (W - vw * s) / 2, oy: (H - vh * s) / 2 };
-  }
-  /* ---------- Lage des Handys: verankert Rahmen im Raum ---------- */
-  const D2R = Math.PI / 180, FOV_LONG = 63;   // Bildwinkel der Hauptkamera über die lange Bildseite, Näherung
+  /* ---------- Lage der Kamera ----------
+     R dreht Kamerakoordinaten (x rechts, y unten, z nach vorn) in den Raum (z oben); z ist ein Zoomfaktor, der wächst, wenn man näher rangeht. */
+  const D2R = Math.PI / 180, FOV_LONG = 63, TANH = Math.tan(FOV_LONG / 2 * D2R);   // Bildwinkel der Hauptkamera über die lange Bildseite, Näherung
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
   const unit = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
   const mix = (a, x, b, y) => [a * x[0] + b * y[0], a * x[1] + b * y[1], a * x[2] + b * y[2]];
-  const yawOf = v => (Math.atan2(v[0], v[1]) / D2R + 360) % 360;
   const angDiff = (a, b) => ((a - b + 540) % 360) - 180;
   const angle = (a, b) => Math.acos(Math.max(-1, Math.min(1, dot(a, b)))) / D2R;
-  /* Aus alpha/beta/gamma die Achsen der Rückkamera im Raum: rechts, oben, vorwärts (Drehmatrix laut W3C-Spezifikation) */
+  const mv = (R, v) => [R[0] * v[0] + R[1] * v[1] + R[2] * v[2], R[3] * v[0] + R[4] * v[1] + R[5] * v[2], R[6] * v[0] + R[7] * v[1] + R[8] * v[2]];
+  const mtv = (R, v) => [R[0] * v[0] + R[3] * v[1] + R[6] * v[2], R[1] * v[0] + R[4] * v[1] + R[7] * v[2], R[2] * v[0] + R[5] * v[1] + R[8] * v[2]];
+  const mm = (A, B) => { const C = new Array(9); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) C[i * 3 + j] = A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j]; return C; };
+  const mT = A => [A[0], A[3], A[6], A[1], A[4], A[7], A[2], A[5], A[8]];
+  const fromCols = (a, b, c) => [a[0], b[0], c[0], a[1], b[1], c[1], a[2], b[2], c[2]];
+  function ortho(R) {   // Rundungsfehler aus der Drehmatrix nehmen
+    const a = unit([R[0], R[3], R[6]]); let b = [R[1], R[4], R[7]]; const k = dot(a, b);
+    b = unit([b[0] - k * a[0], b[1] - k * a[1], b[2] - k * a[2]]);
+    return fromCols(a, b, cross(a, b));
+  }
+  function rotVec(w) {   // Drehung um die Achse w mit Winkel |w|
+    const th = Math.hypot(w[0], w[1], w[2]); if (th < 1e-9) return [1, 0, 0, 0, 1, 0, 0, 0, 1];
+    const x = w[0] / th, y = w[1] / th, z = w[2] / th, c = Math.cos(th), s = Math.sin(th), t = 1 - c;
+    return [t * x * x + c, t * x * y - s * z, t * x * z + s * y, t * x * y + s * z, t * y * y + c, t * y * z - s * x, t * x * z - s * y, t * y * z + s * x, t * z * z + c];
+  }
+  let pose = null, ori = null, motionOn = false, sensAlign = null;
+  const startPose = () => ({ R: [1, 0, 0, 0, 0, 1, 0, -1, 0], z: 1 });   // waagrecht nach vorn
+  /* Normierte Bildkoordinaten (Bildmitte 0, eine Brennweite = 1) <-> Richtung im Raum */
+  const dirOf = (x, y, p) => mv(p.R, unit([x / p.z, y / p.z, 1]));
+  function projN(d, p) { const v = mtv(p.R, d); if (v[2] < 0.08) return null; return { x: v[0] / v[2] * p.z, y: v[1] / v[2] * p.z }; }
+  function fov(vw, vh) { return vw >= vh ? { tx: TANH, ty: TANH * vh / vw } : { tx: TANH * vw / vh, ty: TANH }; }
+
+  /* Lagesensor des Handys: aus alpha/beta/gamma die Achsen der Rückkamera im Raum (Drehmatrix laut W3C-Spezifikation) */
   function onOrient(e) {
     if (typeof e.alpha !== 'number' || typeof e.beta !== 'number' || typeof e.gamma !== 'number') return;
     const x = e.beta * D2R, y = e.gamma * D2R, z = e.alpha * D2R;
@@ -521,122 +581,462 @@
     const Y = [-cX * sZ, cZ * cX, sX];
     const Z = [cY * sZ * sX + cZ * sY, sZ * sY - cZ * cY * sX, cX * cY];
     const o = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * D2R;   // Handy quer gehalten
+    const first = !ori;
     ori = { r: mix(Math.cos(o), X, -Math.sin(o), Y), u: mix(Math.sin(o), X, Math.cos(o), Y), f: [-Z[0], -Z[1], -Z[2]] };
-    oriStamp++;
+    if (first) {
+      /* Erstes Signal: die Karte an der Schwerkraft ausrichten. Gemerkte Dinge drehen sich mit, damit nichts springt. */
+      const S = sensorR();
+      if (S && pose) worldTurn(mm(S, mT(pose.R)));
+      syncMotion();
+    }
   }
+  /* Die Lage laut Sensor; nur für die Rückkamera, bei der Frontkamera zeigen die Achsen anders */
+  function sensorR() { return ori && cfg.facing !== 'user' ? fromCols(ori.r, [-ori.u[0], -ori.u[1], -ori.u[2]], ori.f) : null; }
   /* Muss auf dem iPhone direkt aus einem Tippen heraus aufgerufen werden */
   async function enableMotion() {
     if (motionOn) return true;
     if (!window.DeviceOrientationEvent) return false;
     try {
-      if (typeof DeviceOrientationEvent.requestPermission === 'function' && await DeviceOrientationEvent.requestPermission() !== 'granted') { if (isRoom()) renderRoom(); return false; }
-    } catch (e) { if (isRoom()) renderRoom(); return false; }
+      if (typeof DeviceOrientationEvent.requestPermission === 'function' && await DeviceOrientationEvent.requestPermission() !== 'granted') return false;
+    } catch (e) { return false; }
     window.addEventListener('deviceorientation', onOrient, true);
-    motionOn = true; setTimeout(() => { if (isRoom()) renderRoom(); }, 700);
+    motionOn = true;
     return true;
   }
-  const anchoredNow = () => !!ori && cfg.facing !== 'user';
-  function fov(vw, vh) { const t = Math.tan(FOV_LONG / 2 * D2R); return vw >= vh ? { tx: t, ty: t * vh / vw } : { tx: t * vw / vh, ty: t }; }
-  /* Bildpunkt (0 bis 1000) -> Richtung im Raum, und zurück */
-  function ray(x, y, o, k) { const a = (x / 500 - 1) * k.tx, b = (1 - y / 500) * k.ty; return unit([o.f[0] + a * o.r[0] + b * o.u[0], o.f[1] + a * o.r[1] + b * o.u[1], o.f[2] + a * o.r[2] + b * o.u[2]]); }
-  function proj(d, o, k) { const z = dot(d, o.f); if (z < 0.1) return null; return { x: (dot(d, o.r) / z / k.tx + 1) * 500, y: (1 - dot(d, o.u) / z / k.ty) * 500 }; }
+  /* Dreht die ganze gemerkte Welt samt Kamera: gleicht Drift aus, ohne dass im Bild etwas springt */
+  function worldTurn(C) {
+    if (pose) pose.R = ortho(mm(C, pose.R));
+    if (trk.key) { trk.key.pose.R = ortho(mm(C, trk.key.pose.R)); trk.key.dirs = trk.key.dirs.map(d => mv(C, d)); }
+    for (const t of things.concat(target ? [target] : [])) { t.c = mv(C, t.c); t.dc = mv(C, t.dc); }
+    if (lastShotF) lastShotF = mv(C, lastShotF);
+  }
+  /* Dreht nur die Kamera gegen die gemerkte Welt: zieht die Lage nach, wenn ein bekanntes Ding woanders wieder auftaucht */
+  function poseTurn(C) {
+    if (pose) pose.R = ortho(mm(C, pose.R));
+    if (trk.key) { trk.key.pose.R = ortho(mm(C, trk.key.pose.R)); trk.key.dirs = trk.key.dirs.map(d => mv(C, d)); }
+  }
 
+  /* ---------- Bildverfolgung ----------
+     Schätzt aus dem laufenden Videobild, wie sich die Kamera dreht, und hält damit die Rahmen am Ding: markante Punkte eines
+     Schlüsselbilds werden im aktuellen Bild wiedergefunden (Lucas-Kanade über eine Bildpyramide), Ausreißer fliegen raus (RANSAC),
+     aus dem Rest ergibt sich die Lage. Der Lagesensor springt ein, wenn das Bild zu unscharf oder zu leer ist. */
+  const TR_LONG = 160, TR_LEV = 3, TR_R = 4, TR_CELL = 10, TR_N = (2 * TR_R + 1) * (2 * TR_R + 1);
+  const trk = { w: 0, h: 0, f0: 1, cv: null, ctx: null, key: null, sens: null, vel: null, at: 0, fails: 0, lostAt: 0, still: 0, last: 0, cost: 0 };
+  function grabGray() {
+    const vw = cam.videoWidth, vh = cam.videoHeight; if (!vw || !vh) return null;
+    const s = TR_LONG / Math.max(vw, vh), w = Math.max(24, Math.round(vw * s)), h = Math.max(24, Math.round(vh * s));
+    if (trk.w !== w || trk.h !== h || !trk.ctx) {
+      trk.w = w; trk.h = h; trk.f0 = Math.max(w, h) / 2 / TANH; trk.key = null;
+      trk.cv = document.createElement('canvas'); trk.cv.width = w * 2; trk.cv.height = h * 2;
+      trk.ctx = trk.cv.getContext('2d', { willReadFrequently: true });
+    }
+    trk.ctx.drawImage(cam, 0, 0, w * 2, h * 2);
+    /* in doppelter Größe holen und selbst halbieren: glättet das Flimmern feiner Strukturen */
+    const px = trk.ctx.getImageData(0, 0, w * 2, h * 2).data, g = new Float32Array(w * h), W8 = w * 8;
+    for (let y = 0, o = 0; y < h; y++) {
+      let i = y * 2 * W8;
+      for (let x = 0; x < w; x++, i += 8, o++) {
+        const j = i + W8;
+        g[o] = ((px[i] + px[i + 4] + px[j] + px[j + 4]) * 77 + (px[i + 1] + px[i + 5] + px[j + 1] + px[j + 5]) * 150 + (px[i + 2] + px[i + 6] + px[j + 2] + px[j + 6]) * 29) / 1024;
+      }
+    }
+    const lv = [{ d: g, w, h }];
+    for (let l = 1; l < TR_LEV; l++) {
+      const a = lv[l - 1], W = a.w >> 1, H = a.h >> 1, d = new Float32Array(W * H);
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * 2 * a.w + x * 2; d[y * W + x] = (a.d[i] + a.d[i + 1] + a.d[i + a.w] + a.d[i + a.w + 1]) * 0.25; }
+      lv.push({ d, w: W, h: H });
+    }
+    return lv;
+  }
+  /* Je Rasterzelle der Punkt mit der deutlichsten Ecke (kleinster Eigenwert des Strukturtensors) */
+  function corners(l0) {
+    const d = l0.d, w = l0.w, h = l0.h, gx = new Float32Array(w * h), gy = new Float32Array(w * h), pts = [], m = TR_R + 2;
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; gx[i] = d[i + 1] - d[i - 1]; gy[i] = d[i + w] - d[i - w]; }
+    for (let cy = m; cy + TR_CELL <= h - m; cy += TR_CELL) for (let cx = m; cx + TR_CELL <= w - m; cx += TR_CELL) {
+      let best = 0, bx = 0, by = 0;
+      for (let y = cy; y < cy + TR_CELL; y++) for (let x = cx; x < cx + TR_CELL; x++) {
+        let a = 0, b = 0, c = 0;
+        for (let v = -2; v <= 2; v++) { let i = (y + v) * w + x - 2; for (let u = 0; u < 5; u++, i++) { const p = gx[i], q = gy[i]; a += p * p; b += p * q; c += q * q; } }
+        const e = (a + c - Math.sqrt((a - c) * (a - c) + 4 * b * b)) / 2;
+        if (e > best) { best = e; bx = x; by = y; }
+      }
+      if (best > 600) pts.push(bx, by);
+    }
+    return pts;
+  }
+  const lkT = new Float32Array(TR_N), lkX = new Float32Array(TR_N), lkY = new Float32Array(TR_N), lkP = new Float32Array((2 * TR_R + 3) * (2 * TR_R + 3));
+  /* Findet die Punkte pts aus Pyramide A in Pyramide B wieder. guess: wo sie vermutlich liegen. Ergebnis: Positionen, NaN wenn verloren. */
+  function lk(A, B, pts, guess) {
+    const n = pts.length >> 1, out = new Float32Array(n * 2), R = TR_R, PW = 2 * R + 3;
+    for (let k = 0; k < n; k++) {
+      const x0 = pts[2 * k], y0 = pts[2 * k + 1];
+      let fx = guess[2 * k] - x0, fy = guess[2 * k + 1] - y0, good = false, err = 0;
+      for (let L = TR_LEV - 1; L >= 0; L--) {
+        const a = A[L], b = B[L], sc = 1 / (1 << L), px = x0 * sc, py = y0 * sc;
+        good = false;
+        if (px < R + 1 || py < R + 1 || px > a.w - R - 2.01 || py > a.h - R - 2.01) continue;
+        /* Ausschnitt um den Punkt samt Rand für die Ableitungen */
+        { const ix = Math.floor(px), iy = Math.floor(py), ax = px - ix, ay = py - iy, w00 = (1 - ax) * (1 - ay), w10 = ax * (1 - ay), w01 = (1 - ax) * ay, w11 = ax * ay;
+          for (let v = 0, t = 0; v < PW; v++) { let i = (iy + v - R - 1) * a.w + ix - R - 1; for (let u = 0; u < PW; u++, i++, t++) lkP[t] = a.d[i] * w00 + a.d[i + 1] * w10 + a.d[i + a.w] * w01 + a.d[i + a.w + 1] * w11; } }
+        let gxx = 0, gxy = 0, gyy = 0, mTm = 0;
+        for (let v = 0, t = 0; v < 2 * R + 1; v++) for (let u = 0; u < 2 * R + 1; u++, t++) {
+          const i = (v + 1) * PW + u + 1, dx = (lkP[i + 1] - lkP[i - 1]) * 0.5, dy = (lkP[i + PW] - lkP[i - PW]) * 0.5;
+          lkT[t] = lkP[i]; lkX[t] = dx; lkY[t] = dy; mTm += lkP[i]; gxx += dx * dx; gxy += dx * dy; gyy += dy * dy;
+        }
+        mTm /= TR_N;
+        const det = gxx * gyy - gxy * gxy;
+        if (det < 1e-4 * (gxx + gyy) * (gxx + gyy) || gxx + gyy < 40) continue;
+        let ux = fx * sc, uy = fy * sc;
+        for (let it = 0; it < 8; it++) {
+          const qx = px + ux, qy = py + uy;
+          if (qx < R || qy < R || qx > b.w - R - 1.01 || qy > b.h - R - 1.01) { good = false; break; }
+          const ix = Math.floor(qx), iy = Math.floor(qy), ax = qx - ix, ay = qy - iy, w00 = (1 - ax) * (1 - ay), w10 = ax * (1 - ay), w01 = (1 - ax) * ay, w11 = ax * ay;
+          let mJ = 0;
+          for (let v = 0, t = 0; v < 2 * R + 1; v++) { let i = (iy + v - R) * b.w + ix - R; for (let u = 0; u < 2 * R + 1; u++, i++, t++) { const c = b.d[i] * w00 + b.d[i + 1] * w10 + b.d[i + b.w] * w01 + b.d[i + b.w + 1] * w11; lkP[t] = c; mJ += c; } }
+          mJ /= TR_N;
+          let bx = 0, by = 0; err = 0;
+          for (let t = 0; t < TR_N; t++) { const e = lkT[t] - mTm - lkP[t] + mJ; bx += e * lkX[t]; by += e * lkY[t]; err += e < 0 ? -e : e; }   // Helligkeit herausgerechnet: die Belichtung darf nachregeln
+          const dx = (gyy * bx - gxy * by) / det, dy = (gxx * by - gxy * bx) / det;
+          ux += dx; uy += dy; good = true;
+          if (dx * dx + dy * dy < 0.0004) break;
+        }
+        if (good || L > 0) { fx = ux / sc; fy = uy / sc; }
+      }
+      if (good && err / TR_N < 16) { out[2 * k] = x0 + fx; out[2 * k + 1] = y0 + fy; } else { out[2 * k] = NaN; out[2 * k + 1] = NaN; }
+    }
+    return out;
+  }
+  /* Ähnlichkeitsabbildung (Drehen, Skalieren, Verschieben) zwischen zwei Punktmengen, robust gegen Ausreißer */
+  function fitSim(P, Q, n) {
+    let seed = 12345, best = null, bestN = 0;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) % n;
+    const count = (a, b, tx, ty, mask) => { let c = 0; for (let i = 0; i < n; i++) { const ex = a * P[2 * i] - b * P[2 * i + 1] + tx - Q[2 * i], ey = b * P[2 * i] + a * P[2 * i + 1] + ty - Q[2 * i + 1], ok = ex * ex + ey * ey < 1.7; if (mask) mask[i] = ok ? 1 : 0; if (ok) c++; } return c; };
+    for (let it = 0; it < 48; it++) {
+      const i = rnd(), j = rnd(); if (i === j) continue;
+      const px = P[2 * j] - P[2 * i], py = P[2 * j + 1] - P[2 * i + 1], l = px * px + py * py; if (l < 100) continue;
+      const qx = Q[2 * j] - Q[2 * i], qy = Q[2 * j + 1] - Q[2 * i + 1];
+      const a = (px * qx + py * qy) / l, b = (px * qy - py * qx) / l, tx = Q[2 * i] - a * P[2 * i] + b * P[2 * i + 1], ty = Q[2 * i + 1] - b * P[2 * i] - a * P[2 * i + 1];
+      const c = count(a, b, tx, ty, null);
+      if (c > bestN) { bestN = c; best = [a, b, tx, ty]; }
+    }
+    if (!best) return null;
+    const mask = new Uint8Array(n);
+    for (let round = 0; round < 2; round++) {   // mit allen passenden Punkten nachschärfen
+      const c = count(best[0], best[1], best[2], best[3], mask); if (c < 4) return null;
+      let pcx = 0, pcy = 0, qcx = 0, qcy = 0;
+      for (let i = 0; i < n; i++) if (mask[i]) { pcx += P[2 * i]; pcy += P[2 * i + 1]; qcx += Q[2 * i]; qcy += Q[2 * i + 1]; }
+      pcx /= c; pcy /= c; qcx /= c; qcy /= c;
+      let s0 = 0, s1 = 0, s2 = 0;
+      for (let i = 0; i < n; i++) if (mask[i]) { const px = P[2 * i] - pcx, py = P[2 * i + 1] - pcy, qx = Q[2 * i] - qcx, qy = Q[2 * i + 1] - qcy; s0 += px * px + py * py; s1 += px * qx + py * qy; s2 += px * qy - py * qx; }
+      if (s0 < 1e-6) return null;
+      const a = s1 / s0, b = s2 / s0; best = [a, b, qcx - a * pcx + b * pcy, qcy - b * pcx - a * pcy];
+    }
+    return { a: best[0], b: best[1], tx: best[2], ty: best[3], mask, n: count(best[0], best[1], best[2], best[3], mask) };
+  }
+  function makeKey(pyr) {
+    const pts = corners(pyr[0]), dirs = [], kp = { R: pose.R.slice(), z: pose.z };
+    for (let i = 0; i < pts.length; i += 2) dirs.push(dirOf((pts[i] - trk.w / 2) / trk.f0, (pts[i + 1] - trk.h / 2) / trk.f0, kp));
+    trk.key = { pyr, pts, dirs, pose: kp, n: pts.length >> 1 };
+  }
+  /* Grobe Verschiebung zwischen zwei kleinen Bildern durch Ausprobieren: fängt große Sprünge zwischen zwei Videobildern auf */
+  function coarseShift(a, b) {
+    const w = a.w, h = a.h, mx = Math.min(10, (w >> 1) - 3), my = Math.min(10, (h >> 1) - 3);
+    let best = 1e18, bx = 0, by = 0;
+    for (let dy = -my; dy <= my; dy++) for (let dx = -mx; dx <= mx; dx++) {
+      const x0 = Math.max(0, -dx), x1 = Math.min(w, w - dx), y0 = Math.max(0, -dy), y1 = Math.min(h, h - dy);
+      let sum = 0;
+      for (let y = y0; y < y1; y++) { let i = y * w + x0, j = (y + dy) * w + x0 + dx; for (let x = x0; x < x1; x++, i++, j++) { const e = a.d[i] - b.d[j]; sum += e < 0 ? -e : e; } }
+      sum /= (x1 - x0) * (y1 - y0);
+      if (sum < best) { best = sum; bx = dx; by = dy; }
+    }
+    return { x: bx, y: by };
+  }
+  function logRot(D) {   // Drehmatrix -> Drehvektor
+    const c = Math.max(-1, Math.min(1, (D[0] + D[4] + D[8] - 1) / 2)), th = Math.acos(c), k = th < 1e-6 ? 0.5 : th / (2 * Math.sin(th));
+    return [(D[7] - D[5]) * k, (D[2] - D[6]) * k, (D[3] - D[1]) * k];
+  }
+  /* Sucht die Punkte des Schlüsselbilds K im aktuellen Bild und rechnet daraus die Lage. guess: vermutete Positionen, R0: vermutete Drehung. */
+  function solve(K, pyr, guess, R0) {
+    const w = trk.w, h = trk.h, f0 = trk.f0, res = lk(K.pyr, pyr, K.pts, guess), P = [], Q = [], idx = [];
+    for (let k = 0; k < K.n; k++) if (res[2 * k] === res[2 * k]) { P.push(K.pts[2 * k] - w / 2, K.pts[2 * k + 1] - h / 2); Q.push(res[2 * k] - w / 2, res[2 * k + 1] - h / 2); idx.push(k); }
+    const m = idx.length, fit = m >= 12 ? fitSim(P, Q, m) : null;
+    if (!fit || fit.n < Math.max(10, 0.4 * m)) return null;
+    let s = Math.hypot(fit.a, fit.b); if (Math.abs(s - 1) < 0.012) s = 1;   // kleines Rauschen nicht als Zoom aufsummieren
+    if (s < 0.6 || s > 1.7) return null;
+    const z = Math.max(0.4, Math.min(3, K.pose.z * s));
+    /* Drehung, die die Blickstrahlen der passenden Punkte auf ihre gemerkten Richtungen legt (Gauß-Newton, wenige Schritte) */
+    let R = R0;
+    for (let it = 0; it < 5; it++) {
+      let h00 = 0, h01 = 0, h02 = 0, h11 = 0, h12 = 0, h22 = 0, g0 = 0, g1 = 0, g2 = 0;
+      for (let i = 0; i < m; i++) if (fit.mask[i]) {
+        const a = mv(R, unit([Q[2 * i] / f0 / z, Q[2 * i + 1] / f0 / z, 1])), d = K.dirs[idx[i]];
+        h00 += 1 - a[0] * a[0]; h01 -= a[0] * a[1]; h02 -= a[0] * a[2]; h11 += 1 - a[1] * a[1]; h12 -= a[1] * a[2]; h22 += 1 - a[2] * a[2];
+        g0 += a[1] * d[2] - a[2] * d[1]; g1 += a[2] * d[0] - a[0] * d[2]; g2 += a[0] * d[1] - a[1] * d[0];
+      }
+      const c00 = h11 * h22 - h12 * h12, c01 = h02 * h12 - h01 * h22, c02 = h01 * h12 - h02 * h11, det = h00 * c00 + h01 * c01 + h02 * c02;
+      if (Math.abs(det) < 1e-9) return null;
+      const wv = [(c00 * g0 + c01 * g1 + c02 * g2) / det, (c01 * g0 + (h00 * h22 - h02 * h02) * g1 + (h01 * h02 - h00 * h12) * g2) / det, (c02 * g0 + (h01 * h02 - h00 * h12) * g1 + (h00 * h11 - h01 * h01) * g2) / det];
+      R = mm(rotVec(wv), R);
+      if (wv[0] * wv[0] + wv[1] * wv[1] + wv[2] * wv[2] < 1e-10) break;
+    }
+    /* Neues Schlüsselbild nötig, sobald sich das alte zu weit aus dem Bild geschoben hat */
+    return { R: ortho(R), z, rekey: fit.n < 0.5 * K.n || Math.hypot(fit.tx, fit.ty) > 0.2 * Math.min(w, h) || Math.abs(s - 1) > 0.1 || Math.abs(fit.b) > 0.1 };
+  }
+  /* Ein Schritt je Videobild: Lage der Kamera fortschreiben */
+  function track() {
+    const pyr = grabGray(); if (!pyr) return;
+    if (!pose) pose = startPose();
+    const now = performance.now(), dt = now - trk.at, sens = sensorR(), prevR = pose.R, w = trk.w, h = trk.h, f0 = trk.f0;
+    trk.at = now;
+    /* Vorhersage: der Sensor sagt, wie weit sich das Handy seit dem letzten Bild gedreht hat; ohne Sensor gilt, dass die Bewegung so weitergeht */
+    let pR = pose.R;
+    if (sens && trk.sens) pR = ortho(mm(pose.R, mm(mT(trk.sens), sens)));
+    else if (trk.vel && dt < 250) pR = ortho(mm(rotVec(trk.vel.map(v => v * dt)), pose.R));
+    const pred = { R: pR, z: pose.z };
+    trk.sens = sens;
+    let sol = null;
+    const K = trk.key;
+    if (K && K.n >= 20) {
+      const guess = new Float32Array(K.n * 2);
+      for (let k = 0; k < K.n; k++) { const q = projN(K.dirs[k], pred); guess[2 * k] = q ? q.x * f0 + w / 2 : K.pts[2 * k]; guess[2 * k + 1] = q ? q.y * f0 + h / 2 : K.pts[2 * k + 1]; }
+      sol = solve(K, pyr, guess, pred.R);
+      if (!sol) {   // Sprung zu groß für die Vorhersage: erst grob suchen, dann fein
+        const sh = coarseShift(K.pyr[TR_LEV - 1], pyr[TR_LEV - 1]), mul = 1 << (TR_LEV - 1);
+        for (let k = 0; k < K.n; k++) { guess[2 * k] = K.pts[2 * k] + sh.x * mul; guess[2 * k + 1] = K.pts[2 * k + 1] + sh.y * mul; }
+        sol = solve(K, pyr, guess, pred.R);
+      }
+    }
+    if (sol) {
+      pose = { R: sol.R, z: sol.z };
+      if (sol.rekey) makeKey(pyr);
+      trk.fails = 0; trk.lostAt = 0;
+      trk.vel = dt > 0 && dt < 250 ? logRot(mm(pose.R, mT(prevR))).map(v => v / dt) : null;
+    } else {
+      /* blind: ein paar Bilder lang der Vorhersage folgen, dann stehen bleiben */
+      pose = { R: pred.R.slice(), z: pose.z };
+      makeKey(pyr);
+      if (!sens && ++trk.fails > 4) { trk.vel = null; if (trk.fails > 8 && !trk.lostAt) { trk.lostAt = now; relocate = true; } }
+    }
+    document.body.classList.toggle('lost', !!trk.lostAt && now - trk.lostAt > 600);
+    trk.still = angle([prevR[2], prevR[5], prevR[8]], [pose.R[2], pose.R[5], pose.R[8]]) < 0.35 ? trk.still + 1 : 0;
+  }
+
+  /* ---------- Gemerkte Dinge ---------- */
+  function hue(name) { let h = 0; for (const c of String(name).toLowerCase()) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
   const thingKey = n => String(n).toLowerCase().replace(/[0-9?]+/g, '').replace(/\s+/g, ' ').trim();
-  /* Nimmt die Rahmen einer Antwort auf. Mit Lagesensor werden sie als Richtungen im Raum gemerkt und bleiben beim Schwenken am Ding. */
-  function ingest(list, shot) {
-    const anchored = !!shot.ori && cfg.facing !== 'user', k = fov(shot.vw, shot.vh);
+  /* Ein Ganzes und seine Teile: das Modell rahmt gern die Tastatur eines Laptops extra ein. Solche Teile gehen im Ganzen auf. */
+  const WHOLES = [
+    [/laptop|notebook|macbook|dizüstü/i, /tastatur|keyboard|klavye|bildschirm|display|screen|ekran|monitor|touchpad|trackpad|scharnier|webcam/i],
+    [/monitor|bildschirm|fernseher|\btv\b|televizyon|display/i, /standfu[ßs]|ständer|\bstand\b|\bfu[ßs]\b|rahmen|sockel/i],
+    [/handy|smartphone|telefon|phone/i, /display|bildschirm|screen|ekran|kamera|camera|hülle/i],
+    [/person|mensch|insan|kişi/i, /gesicht|kopf|hand|\barm\b|bein|face|head|\bleg\b|yüz|haare?|hair/i],
+    [/auto|\bcar\b|wagen|araba|fahrrad|bike|bisiklet/i, /\brad\b|reifen|wheel|tire|tyre|tür|door|lenker|sattel|teker|scheinwerfer|kennzeichen/i],
+    [/stuhl|chair|sandalye|sessel/i, /bein|\bleg\b|lehne|sitz|rolle/i]
+  ];
+  function mergeParts(list) {
+    const out = list.map(b => Object.assign({}, b)), gone = new Set();
+    const area = b => (b.x2 - b.x1) * (b.y2 - b.y1);
+    for (const W of out) for (const P of out) {
+      if (W === P || gone.has(W) || gone.has(P)) continue;
+      const wk = thingKey(W.n), pk = thingKey(P.n);
+      const named = WHOLES.some(([w, p]) => w.test(wk) && !p.test(wk) && p.test(pk));
+      const prefixed = pk !== wk && wk.length > 3 && pk.includes(wk);   // „Laptop-Tastatur“ gehört zu „Laptop“
+      if (!named && !prefixed) continue;
+      const ox = Math.min(W.x2, P.x2) - Math.max(W.x1, P.x1), oy = Math.min(W.y2, P.y2) - Math.max(W.y1, P.y1);
+      const inside = ox > 0 && oy > 0 ? ox * oy / Math.max(1, area(P)) : 0;
+      /* liegt das Teil größtenteils im Ganzen, oder schließt es bündig an (Bildschirm oben, Tastatur darunter)? */
+      const stacked = ox > 0.6 * Math.max(W.x2 - W.x1, P.x2 - P.x1) && oy > -50, beside = oy > 0.6 * Math.max(W.y2 - W.y1, P.y2 - P.y1) && ox > -50;
+      if (inside >= (named ? 0.6 : 0.75) || (named && (stacked || beside))) {
+        W.x1 = Math.min(W.x1, P.x1); W.y1 = Math.min(W.y1, P.y1); W.x2 = Math.max(W.x2, P.x2); W.y2 = Math.max(W.y2, P.y2);
+        gone.add(P);
+      }
+    }
+    return out.filter(b => !gone.has(b));
+  }
+  /* Rahmen im Bild (0 bis 1000) -> Richtung der Mitte im Raum und halbe Größe in Brennweiten */
+  function place(b, sp, k) {
+    const x1 = (b.x1 / 500 - 1) * k.tx, x2 = (b.x2 / 500 - 1) * k.tx, y1 = (b.y1 / 500 - 1) * k.ty, y2 = (b.y2 / 500 - 1) * k.ty;
+    return { c: dirOf((x1 + x2) / 2, (y1 + y2) / 2, sp), hw: (x2 - x1) / 2 / sp.z, hh: (y2 - y1) / 2 / sp.z };
+  }
+  const sizeDeg = t => Math.atan((t.hw + t.hh) / 2) / D2R;
+  /* Welche Meldung gehört zu welchem gemerkten Ding? Gleicher Name in der Nähe, oder anderer Name an praktisch derselben Stelle. */
+  function matchUp(dets, pool) {
+    const cand = [];
+    dets.forEach((d, i) => pool.forEach((t, j) => {
+      const a = angle(d.c, t.c), rd = sizeDeg(d), rt = sizeDeg(t);
+      if (d.key === t.key) { if (a < Math.max(6, 0.7 * (rd + rt))) cand.push([a, i, j]); }
+      else if (a < 0.5 * Math.min(rd, rt) && rd / rt > 0.6 && rd / rt < 1.67) cand.push([a + 8, i, j]);
+    }));
+    cand.sort((x, y) => x[0] - y[0]);
+    const byDet = new Map(), used = new Set();
+    for (const [, i, j] of cand) if (!byDet.has(i) && !used.has(j)) { byDet.set(i, pool[j]); used.add(j); }
+    return byDet;
+  }
+  function absorb(t, d, now) {
+    const far = angle(t.c, d.c) > sizeDeg(d), k = far ? 1 : 0.7;   // Rahmen des Modells wackeln von Bild zu Bild: glätten, solange es dieselbe Stelle ist
+    t.c = unit(mix(1 - k, t.c, k, d.c)); t.hw += (d.hw - t.hw) * k; t.hh += (d.hh - t.hh) * k;
+    t.names[d.b.n] = (t.names[d.b.n] || 0) + 1;
+    let top = t.n; for (const n in t.names) if (t.names[n] > (t.names[top] || 0)) top = n;   // der häufigste Name gewinnt, damit das Etikett nicht flackert
+    t.n = top; t.key = thingKey(top);
+    if (d.b.m) t.m = t.m ? (t.m * Math.min(t.seen, 4) + d.b.m) / (Math.min(t.seen, 4) + 1) : d.b.m;
+    t.seen++; t.miss = 0; t.at = now; t.ans = answers;
+  }
+  const fresh = (d, now) => ({ id: nextId++, n: d.b.n, key: d.key, names: { [d.b.n]: 1 }, c: d.c, hw: d.hw, hh: d.hh, dc: d.c, dhw: d.hw, dhh: d.hh, m: d.b.m || null, seen: 1, miss: 0, at: now, ans: answers, vis: false });
+  /* Nimmt die Rahmen einer Antwort auf. listed: das Modell hat wirklich eine Liste geliefert (dann zählt auch, was fehlt). */
+  function ingest(list, shot, listed) {
+    const sp = { R: shot.pose.R.slice(), z: shot.pose.z }, k = fov(shot.vw, shot.vh), now = Date.now();
+    answers++;
+    let dets = (isProduct() ? list.slice(0, 1) : mergeParts(list)).map(b => Object.assign({ b, key: thingKey(b.n) }, place(b, sp, k))).filter(d => d.key);
     if (isProduct()) {
-      const b = list[0];
-      target = !b ? null : anchored ? { n: b.n, tl: ray(b.x1, b.y1, shot.ori, k), br: ray(b.x2, b.y2, shot.ori, k) } : { n: b.n, box: b };
+      const d = dets[0];
+      if (!d) target = null;
+      else if (target && angle(target.c, d.c) < 2 * sizeDeg(d)) absorb(target, d, now);
+      else target = fresh(d, now);
       renderBoxes(); return;
     }
-    if (!anchored) {
-      flat = list;
-      if (isRoom()) {   // ohne Lagesensor: nur nach Namen sammeln
-        const count = {};
-        for (const b of list) {
-          const key = thingKey(b.n); if (!key) continue;
-          count[key] = (count[key] || 0) + 1;
-          const have = things.filter(t => t.key === key);
-          if (have.length < count[key]) things.push({ n: b.n, key, c: null, tl: null, br: null, m: b.m, seen: 1, miss: 0 });
-          else { const t = have[count[key] - 1]; if (b.m) t.m = t.m ? (t.m * t.seen + b.m) / (t.seen + 1) : b.m; t.seen++; }
-        }
-      }
-    } else {
-      flat = [];
-      const hit = new Set();
-      for (const b of list) {
-        const key = thingKey(b.n); if (!key) continue;
-        const c = ray((b.x1 + b.x2) / 2, (b.y1 + b.y2) / 2, shot.ori, k);
-        let best = null, bestA = 1e9;
-        for (const t of things) {
-          if (hit.has(t) || !t.c) continue;
-          const a = angle(c, t.c);
-          if (a < (t.key === key ? 14 : 6) && a < bestA) { best = t; bestA = a; }   // dasselbe Ding: gleicher Name in der Nähe oder fast dieselbe Richtung
-        }
-        if (!best) { best = { seen: 0, m: null }; things.push(best); }
-        best.n = b.n; best.key = key; best.c = c; best.tl = ray(b.x1, b.y1, shot.ori, k); best.br = ray(b.x2, b.y2, shot.ori, k);
-        if (b.m) best.m = best.m ? (best.m * best.seen + b.m) / (best.seen + 1) : b.m;
-        best.seen++; best.miss = 0; hit.add(best);
-      }
-      /* Was im aufgenommenen Bild hätte liegen müssen, aber dreimal nicht mehr gemeldet wurde, fliegt raus */
-      things = things.filter(t => {
-        if (hit.has(t) || !t.c) return true;
-        const p = proj(t.c, shot.ori, k);
-        return p && p.x > 150 && p.x < 850 && p.y > 150 && p.y < 850 ? ++t.miss < 3 : true;
-      });
-      if (things.length > 60) things.splice(0, things.length - 60);
+    /* Die Lage an bekannten Dingen wieder einhängen: Dinge wandern nicht, also ist ein gemeinsamer Versatz Drift der geschätzten Lage.
+       Statt jedes Ding einzeln zu verschieben, wird die Kamera gegen die gemerkte Welt gedreht; so stimmt auch alles außerhalb des Bilds wieder. */
+    let pairs = null;
+    const turnBy = w => { const C = rotVec(w); poseTurn(C); sp.R = mm(C, sp.R); dets.forEach(d => { d.c = mv(C, d.c); }); };
+    const offset = (d, t) => { const ax = cross(d.c, t.c), sn = Math.hypot(ax[0], ax[1], ax[2]); return sn > 1e-9 ? ax.map(v => v / sn * Math.atan2(sn, dot(d.c, t.c))) : [0, 0, 0]; };
+    if (relocate && dets.length && things.length) {
+      /* Nach einem Neustart oder Blindflug ist unklar, wohin die Kamera zeigt: am bekanntesten Ding orientieren, dessen Name eindeutig ist */
+      let best = null;
+      for (const d of dets) { const same = things.filter(t => t.key === d.key); if (same.length === 1 && dets.filter(x => x.key === d.key).length === 1 && (!best || same[0].seen > best.t.seen)) best = { d, t: same[0] }; }
+      if (best) turnBy(offset(best.d, best.t));
     }
-    renderBoxes(); drawRadars();
+    if (dets.length) relocate = false;
+    pairs = matchUp(dets, things);
+    if (pairs.size) {
+      const ws = []; let big = 0;
+      pairs.forEach((t, i) => { ws.push(offset(dets[i], t)); big = Math.max(big, sizeDeg(dets[i])); });
+      const mean = [0, 1, 2].map(k => ws.reduce((a, w) => a + w[k], 0) / ws.length), mag = Math.hypot(mean[0], mean[1], mean[2]) / D2R;
+      const agree = ws.every(w => Math.hypot(w[0] - mean[0], w[1] - mean[1], w[2] - mean[2]) / D2R < Math.max(2, 0.35 * mag));
+      /* mehrere Dinge mit demselben Versatz sind eindeutig; bei einem einzelnen muss er deutlich über dem Wackeln der Rahmen liegen */
+      if (agree && mag > (ws.length > 1 ? 3 : Math.max(6, 0.5 * big))) { turnBy(mean); pairs = matchUp(dets, things); }
+    } else if (dets.length && things.length) {
+      /* Nichts liegt, wo es liegen müsste. Taucht ein bekannter Name in der Nähe auf, ist es dasselbe Ding. */
+      let best = null;
+      for (const d of dets) for (const t of things) { const a = angle(d.c, t.c); if (d.key === t.key && a < 30 && (!best || t.seen > best.t.seen || (t.seen === best.t.seen && a < best.a))) best = { d, t, a }; }
+      if (best) { turnBy(offset(best.d, best.t)); pairs = matchUp(dets, things); }
+    }
+    const hit = new Set(), born = new Set();
+    dets.forEach((d, i) => {
+      let t = pairs.get(i);
+      if (t) absorb(t, d, now); else { t = fresh(d, now); things.push(t); born.add(t.key); }
+      hit.add(t);
+    });
+    /* Was vollständig im aufgenommenen Bild hätte liegen müssen und wiederholt fehlt, fliegt raus; oft Gesehenes hält länger. Taucht derselbe Name gleichzeitig
+       woanders neu auf, war das Alte ein Geist desselben Dings und verschwindet schneller. */
+    if (listed && list.length < MAX_BOXES - 2) things = things.filter(t => {
+      if (hit.has(t)) return true;
+      const p = projN(t.c, sp); if (!p || Math.abs(p.x) + t.hw * sp.z > 0.96 * k.tx || Math.abs(p.y) + t.hh * sp.z > 0.96 * k.ty) return true;
+      t.miss += born.has(t.key) ? 2 : 1;
+      if (t.miss < 3 + Math.min(2, t.seen / 3 | 0)) return true;
+      if (seek === t) seek = null;
+      return false;
+    });
+    if (things.length > 60) things = things.slice().sort((a, b) => b.at - a.at).slice(0, 60).sort((a, b) => a.id - b.id);
+    renderBoxes(); mapChanged();
   }
+
+  /* ---------- Rahmen und Wegweiser zeichnen ---------- */
+  /* Wo das (per object-fit: cover beschnittene) Kamerabild auf dem Bildschirm liegt */
+  function frameRect() {
+    const W = cam.clientWidth, H = cam.clientHeight, vw = cam.videoWidth, vh = cam.videoHeight;
+    if (!W || !H || !vw || !vh) return null;
+    const s = Math.max(W / vw, H / vh);
+    return { W, H, w: vw * s, h: vh * s, ox: (W - vw * s) / 2, oy: (H - vh * s) / 2 };
+  }
+  const boxEls = new Map(), ptrEls = new Map();
+  let safe = { top: 70, bottom: 300, at: 0 };
   function renderBoxes() {
-    const f = frameRect(), want = [];
-    if (f && running) {
-      const k = fov(cam.videoWidth, cam.videoHeight), anchored = anchoredNow();
-      const viaRays = (obj, cls) => {
-        const a = proj(obj.tl, ori, k), b = proj(obj.br, ori, k);
-        if (a && b) want.push({ obj, cls, x1: Math.min(a.x, b.x), y1: Math.min(a.y, b.y), x2: Math.max(a.x, b.x), y2: Math.max(a.y, b.y) });
-      };
-      if (isProduct()) {
-        if (target && target.tl && anchored) viaRays(target, ' target');
-        else if (target && target.box) want.push({ obj: target, cls: ' target', x1: target.box.x1, y1: target.box.y1, x2: target.box.x2, y2: target.box.y2 });
-      } else if (cfg.boxes || isRoom()) {
-        if (anchored) for (const t of things) { if (t.tl) viaRays(t, ''); }
-        for (const b of flat) want.push({ obj: b, cls: '', x1: b.x1, y1: b.y1, x2: b.x2, y2: b.y2 });
+    const f = frameRect(), keepB = new Set(), keepP = new Set(), off = [];
+    if (f && running && pose) {
+      const k = fov(cam.videoWidth, cam.videoHeight), mirror = cfg.facing === 'user', now = performance.now();
+      if (now - safe.at > 400) { safe = { top: $('top').getBoundingClientRect().bottom + 8, bottom: $('dock').getBoundingClientRect().top - 8, at: now }; }
+      const list = isProduct() ? (target ? [target] : []) : (cfg.boxes || isRoom() ? things : []);
+      for (const t of list) {
+        /* sanft zur zuletzt gemeldeten Stelle gleiten statt zu springen */
+        t.dc = unit(mix(0.72, t.dc, 0.28, t.c)); t.dhw += (t.hw - t.dhw) * 0.28; t.dhh += (t.hh - t.dhh) * 0.28;
+        const p = projN(t.dc, pose);
+        t.vis = false;
+        if (p) {
+          let cx = f.ox + (p.x / k.tx + 1) / 2 * f.w; const cy = f.oy + (p.y / k.ty + 1) / 2 * f.h;
+          const hw = t.dhw * pose.z / k.tx / 2 * f.w, hh = t.dhh * pose.z / k.ty / 2 * f.h;
+          if (mirror) cx = f.W - cx;
+          const x1 = cx - hw, y1 = cy - hh, ix = Math.min(cx + hw, f.W) - Math.max(x1, 0), iy = Math.min(cy + hh, f.H) - Math.max(y1, 0);
+          if (ix > Math.min(30, hw) && iy > Math.min(30, hh) && hw > 6 && hh > 6) {
+            t.vis = true;
+            let el = boxEls.get(t);
+            if (!el) {
+              el = document.createElement('div'); el.innerHTML = '<span><em></em></span>';
+              el.onclick = () => pickObject(t.n);
+              boxesEl.appendChild(el); boxEls.set(t, el);
+            }
+            const isSeek = seek === t, cls = 'box' + (t === target ? ' target' : isSeek ? ' seek' : t.ans < answers ? ' mem' : '');
+            if (el.className !== cls) el.className = cls;
+            el.style.transform = 'translate3d(' + x1.toFixed(1) + 'px,' + y1.toFixed(1) + 'px,0)';
+            el.style.width = (2 * hw).toFixed(1) + 'px'; el.style.height = (2 * hh).toFixed(1) + 'px';
+            const lab = el.firstChild, name = lab.firstChild;
+            if (name.textContent !== t.n) { name.textContent = t.n; el.dataset.n = t.n; el.style.setProperty('--h', hue(t.key)); }
+            /* Etikett über dem Rahmen, wenn dort Platz ist, sonst innen; am Bildschirmrand bleibt es sichtbar */
+            const lx = Math.max(0, 8 - x1), ly = y1 - 28 > safe.top ? -28 : Math.max(6, safe.top - y1);
+            lab.style.transform = 'translate(' + lx.toFixed(0) + 'px,' + Math.min(ly, Math.max(6, 2 * hh - 30)).toFixed(0) + 'px)';
+            keepB.add(t);
+            if (isSeek && !seekHit) { seekHit = now; watching(); }
+          }
+        }
+        if (!t.vis && !isProduct()) {
+          const v = mtv(pose.R, t.dc);
+          off.push({ t, away: Math.acos(Math.max(-1, Math.min(1, v[2]))), a: Math.atan2(v[1], mirror ? -v[0] : v[0]) });
+        }
+      }
+      if (seek && seekHit && now - seekHit > 2400) { seek = null; seekHit = 0; watching(); }
+      /* Wegweiser: die drei nächstgelegenen Dinge außerhalb des Bilds, das gesuchte immer */
+      off.sort((a, b) => (b.t === seek) - (a.t === seek) || a.away - b.away);
+      const L = 10, Rr = f.W - 10, T = safe.top + 4, B = Math.max(T + 80, safe.bottom - 4), mx = (L + Rr) / 2, my = (T + B) / 2, placed = [];
+      for (const o of off.slice(0, 3)) {
+        const dx = Math.cos(o.a), dy = Math.sin(o.a);
+        const sx = Math.abs(dx) > 1e-6 ? (dx > 0 ? Rr - mx : mx - L) / Math.abs(dx) : 1e9, sy = Math.abs(dy) > 1e-6 ? (dy > 0 ? B - my : my - T) / Math.abs(dy) : 1e9, side = sx <= sy;
+        /* an den Rand heften, auf den die Richtung zeigt */
+        let x = mx + dx * Math.min(sx, sy), y = my + dy * Math.min(sx, sy), ax = -50, ay = -50;
+        if (side) { ax = dx > 0 ? -100 : 0; y = Math.max(T + 17, Math.min(B - 17, y)); } else { ay = dy > 0 ? -100 : 0; x = Math.max(L + 68, Math.min(Rr - 68, x)); }
+        for (const q of placed) if (Math.abs(q.x - x) < 130 && Math.abs(q.y - y) < 34) y = q.y + (y >= q.y ? 34 : -34);
+        placed.push({ x, y });
+        let el = ptrEls.get(o.t);
+        if (!el) {
+          el = document.createElement('div'); el.innerHTML = '<i></i><span></span>';
+          el.onclick = () => setSeek(o.t);
+          boxesEl.appendChild(el); ptrEls.set(o.t, el);
+        }
+        const cls = 'ptr' + (o.t === seek ? ' seek' : '');
+        if (el.className !== cls) el.className = cls;
+        if (el.lastChild.textContent !== o.t.n) { el.lastChild.textContent = o.t.n; el.dataset.n = o.t.n; el.style.setProperty('--h', hue(o.t.key)); }
+        el.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0) translate(' + ax + '%,' + ay + '%)';
+        el.firstChild.style.transform = 'rotate(' + o.a.toFixed(3) + 'rad)';
+        keepP.add(o.t);
       }
     }
-    const keep = new Set(), mirror = cfg.facing === 'user';
-    for (const w of want) {
-      let x1 = f.ox + w.x1 / 1000 * f.w, x2 = f.ox + w.x2 / 1000 * f.w, y1 = f.oy + w.y1 / 1000 * f.h, y2 = f.oy + w.y2 / 1000 * f.h;
-      if (mirror) { const t = f.W - x2; x2 = f.W - x1; x1 = t; }
-      if (x2 < 4 || x1 > f.W - 4 || y2 < 4 || y1 > f.H - 4) continue;   // außerhalb des Sichtfelds
-      x1 = Math.max(0, x1); x2 = Math.min(f.W, x2); y1 = Math.max(0, y1); y2 = Math.min(f.H, y2);
-      if (x2 - x1 < 14 || y2 - y1 < 14) continue;
-      let el = boxEls.get(w.obj);
-      if (!el) {
-        el = document.createElement('div'); el.appendChild(document.createElement('span'));
-        el.onclick = () => pickObject(w.obj.n);
-        boxesEl.appendChild(el); boxEls.set(w.obj, el);
-      }
-      el.className = 'box' + (y1 < 30 ? ' low' : '') + w.cls;
-      el.style.cssText = 'left:' + x1.toFixed(1) + 'px;top:' + y1.toFixed(1) + 'px;width:' + (x2 - x1).toFixed(1) + 'px;height:' + (y2 - y1).toFixed(1) + 'px;--h:' + hue(thingKey(w.obj.n));
-      if (el.firstChild.textContent !== w.obj.n) el.firstChild.textContent = w.obj.n;
-      keep.add(w.obj);
-    }
-    for (const [obj, el] of boxEls) if (!keep.has(obj)) { el.remove(); boxEls.delete(obj); }
+    for (const [t, el] of boxEls) if (!keepB.has(t)) { el.remove(); boxEls.delete(t); }
+    for (const [t, el] of ptrEls) if (!keepP.has(t)) { el.remove(); ptrEls.delete(t); }
   }
-  function clearBoxes(all) { flat = []; target = null; if (all) { things = []; roomFrames = 0; } renderBoxes(); drawRadars(); }
-  /* Bei jeder Bewegung des Handys die Rahmen neu ins Bild rechnen */
-  let lastStamp = -1, lastRadar = 0;
-  (function tick() {
-    if (running && oriStamp !== lastStamp) {
-      lastStamp = oriStamp; renderBoxes();
-      const now = performance.now();
-      if (now - lastRadar > 100) { lastRadar = now; drawRadars(); }
-    }
-    requestAnimationFrame(tick);
+  function clearBoxes(all) { target = null; if (all) { things = []; roomFrames = 0; roomSee = ''; seek = null; seekHit = 0; } renderBoxes(); mapChanged(); }
+  /* Mit jedem Videobild: Kamerabewegung schätzen, Rahmen nachführen, Karte auffrischen */
+  let lastMap = 0, lastShotF = null;
+  (function everyFrame() {
+    requestAnimationFrame(everyFrame);
+    if (!running || !stream || document.hidden) return;
+    const now = performance.now();
+    if (now - trk.last < Math.max(30, trk.cost * 2.5)) return;   // auf langsamen Geräten seltener rechnen, statt das Bild zu bremsen
+    trk.last = now;
+    track(); renderBoxes();
+    trk.cost += (performance.now() - now - trk.cost) * 0.1;
+    if (now - lastMap > 140) { lastMap = now; drawMaps(); }
+    /* Hat sich der Blick deutlich weiterbewegt und ist wieder ruhig, gleich neu hinschauen statt den Takt abzuwarten */
+    if (poke && lastShotF && trk.still > 8 && angle(lastShotF, [pose.R[2], pose.R[5], pose.R[8]]) > 14 && Date.now() - lastAsk > (isDemo() ? DEMO_MIN_GAP * 1000 : 1500)) poke();
   })();
-  window.addEventListener('resize', renderBoxes);
+  window.addEventListener('resize', () => { safe.at = 0; renderBoxes(); });
   /* Rahmen aus dem Quadrat zurück ins eigentliche Kamerabild rechnen */
   function fromSquare(list, sq) {
     const out = [];
@@ -676,12 +1076,25 @@
       const x1 = clamp(Math.min(c[0], c[2])), x2 = clamp(Math.max(c[0], c[2])), y1 = clamp(Math.min(c[1], c[3])), y2 = clamp(Math.max(c[1], c[3]));
       if (x2 - x1 < 8 || y2 - y1 < 8) continue;
       out.push({ n, x1, y1, x2, y2, m: typeof o.m === 'number' && o.m > 0 ? Math.min(30, o.m) : null });
-      if (out.length >= 10) break;
+      if (out.length >= MAX_BOXES) break;
     }
     return out;
   }
+
   /* ---------- Prompts ---------- */
   const BOX_RULES = 'Zu OBJEKTE: Das Bild ist quadratisch. x1,y1 ist die linke obere und x2,y2 die rechte untere Ecke des Rahmens, als ganze Zahlen von 0 bis 1000 über die volle Bildbreite (x) und die volle Bildhöhe (y), Ursprung links oben. Schwarze Balken am Rand sind nur Füllung und gehören nicht zur Szene. Zieh jeden Rahmen eng um das Ding. Die ganze Liste steht in einer einzigen Zeile.';
+  const WHOLE_RULES = 'Jeder Gegenstand bekommt genau einen Rahmen, der ihn vollständig umschließt. Rahme nie Bestandteile einzeln ein: Bildschirm, Tastatur und Touchpad eines Laptops sind zusammen ein einziger „Laptop“, der Standfuß gehört zum Monitor, die Räder gehören zum Auto. Ein Teil bekommt nur dann einen eigenen Rahmen, wenn es als eigenes Gerät getrennt daliegt, etwa eine externe Tastatur.';
+  /* Was im Blickfeld schon bekannt ist: so bleibt das Modell bei denselben Namen und macht aus einem Ding nicht zwei */
+  function knownLine(shot) {
+    const k = fov(shot.vw, shot.vh), seen = [];
+    for (const t of things) {
+      const p = projN(t.c, shot.pose); if (!p || Math.abs(p.x) > k.tx || Math.abs(p.y) > k.ty) continue;
+      const col = p.x < -k.tx / 3 ? 'links' : p.x > k.tx / 3 ? 'rechts' : '', row = p.y < -k.ty / 3 ? 'oben' : p.y > k.ty / 3 ? 'unten' : '';
+      seen.push(t.n.replace(/\?+$/, '') + ' (' + ([row, col].filter(Boolean).join(' ') || 'Mitte') + ')');
+      if (seen.length >= 8) break;
+    }
+    return seen.length ? '\nIn diesem Blickfeld hast du schon erfasst: ' + seen.join(', ') + '. Siehst du eines davon wieder, nimm genau denselben Namen. Prüfe alles am Bild und lass weg, was nicht mehr da ist.' : '';
+  }
   function systemPrompt() {
     const lang = LANG[cfg.lang] || 'Deutsch', focus = cfg.focus.trim(), full = cfg.thoughts;
     return [
@@ -692,19 +1105,20 @@
       full ? 'SEHE: <ein knapper Satz, was konkret im Bild ist>' : '',
       full ? 'DENKE: <zwei bis drei Sätze innerer Monolog in Ich-Form: was dir auffällt, was du daraus schließt oder vermutest, was sich gegenüber vorher verändert hat, was dich neugierig macht>' : '',
       'Die Marker bleiben immer genau so stehen. Den Inhalt und die Namen schreibst du auf ' + lang + '.',
-      cfg.boxes ? BOX_RULES + ' m ist deine grobe Schätzung der Entfernung von der Kamera in Metern. Namen kurz, ein bis drei Wörter; bist du bei einem Ding unsicher, häng ein Fragezeichen an den Namen. Benenne dasselbe Ding in jedem Bild gleich. Menschen heißen nur „Person“. Ist nichts zu markieren, schreib OBJEKTE: []' : '',
+      cfg.boxes ? BOX_RULES + ' ' + WHOLE_RULES + ' m ist deine grobe Schätzung der Entfernung von der Kamera in Metern. Namen kurz, ein bis drei Wörter; bist du bei einem Ding unsicher, häng ein Fragezeichen an den Namen. Benenne dasselbe Ding in jedem Bild gleich. Menschen heißen nur „Person“. Ist nichts zu markieren, schreib OBJEKTE: []' : '',
       focus ? 'FOKUS: Der Mensch hinter der Kamera will, dass du ausschließlich auf Folgendes achtest: «' + focus + '». Markiere in OBJEKTE nur Dinge, die dazu passen, und nimm auch für BLICK' + (full ? ', SEHE und DENKE' : '') + ' nur solche Dinge. Alles andere im Bild ignorierst du vollständig. Passt gerade nichts dazu, gib OBJEKTE: [] aus und schreib bei BLICK, dass du gerade nichts Passendes siehst.' : '',
       full ? 'Knüpfe an deine früheren Beobachtungen an, statt jedes Mal neu anzufangen. Wiederhole keine Formulierungen. Wenn sich kaum etwas geändert hat, spinne den letzten Gedanken weiter oder richte den Blick auf ein Detail, das du noch nicht erwähnt hast.' : 'Bleib bei derselben Bezeichnung, solange du auf dasselbe Ding schaust.',
       full ? 'Benenne Vermutungen als Vermutungen. Lies erkennbaren Text vor, wenn er interessant ist. Beschreibe Menschen nur allgemein und versuche nie, jemanden anhand seines Gesichts zu identifizieren.' : 'Versuche nie, jemanden anhand seines Gesichts zu identifizieren.',
       cfg.extra.trim() ? 'Zusätzliche Anweisung vom Menschen hinter der Kamera: ' + cfg.extra.trim() : ''
     ].filter(Boolean).join('\n');
   }
-  function userPrompt(gap) {
-    if (!history.length) return 'Erstes Bild. Du öffnest gerade die Augen.';
-    if (!cfg.thoughts) return 'Zuletzt hast du geschaut auf: ' + history.map(h => h.blick).join('; ') + '.\nNeues Bild, etwa ' + gap + ' Sekunden nach dem letzten.';
+  function userPrompt(gap, shot) {
+    const known = cfg.boxes ? knownLine(shot) : '';
+    if (!history.length) return 'Erstes Bild. Du öffnest gerade die Augen.' + known;
+    if (!cfg.thoughts) return 'Zuletzt hast du geschaut auf: ' + history.map(h => h.blick).join('; ') + '.\nNeues Bild, etwa ' + gap + ' Sekunden nach dem letzten.' + known;
     const lines = ['Deine bisherigen Beobachtungen (älteste zuerst):'];
     history.forEach((h, i) => lines.push((i + 1) + '. BLICK: ' + h.blick + ' SEHE: ' + h.see + ' DENKE: ' + h.think));
-    lines.push('', 'Neues Bild, etwa ' + gap + ' Sekunden nach dem letzten.');
+    lines.push('', 'Neues Bild, etwa ' + gap + ' Sekunden nach dem letzten.' + known);
     return lines.join('\n');
   }
   function productSystem() {
@@ -713,7 +1127,7 @@
       'Du bist ein Produkt-Scout und schaust live durch die Kamera eines Handys. Der Mensch richtet ein Fadenkreuz auf einen Gegenstand und will wissen, was genau das für ein Produkt ist. Alle paar Sekunden bekommst du ein neues Standbild.',
       'Deine Aufgabe: Bestimme Produktart, Marke und Modell des anvisierten Gegenstands so genau, wie es das Bild hergibt. Stütze dich nur auf Sichtbares, also Logo, Schriftzug, Typenschild, Aufdruck. Rate keine Marke und keine Modellnummer. Eine typische Bauform reicht nicht für eine Marke. Was nicht lesbar oder nicht eindeutig ist, heißt „unbekannt“.',
       'Antworte immer in genau diesem Format, ohne Markdown:',
-      'OBJEKTE: <gültiges JSON mit genau einem Eintrag für den anvisierten Gegenstand: [{"n":"Name","x1":0,"y1":0,"x2":0,"y2":0}], oder [] wenn am Fadenkreuz kein Produkt liegt>',
+      'OBJEKTE: <gültiges JSON mit genau einem Eintrag für den anvisierten Gegenstand als Ganzes: [{"n":"Name","x1":0,"y1":0,"x2":0,"y2":0}], oder [] wenn am Fadenkreuz kein Produkt liegt>',
       'ART: <Produktart, zum Beispiel Wasserkocher, oder unbekannt>',
       'MARKE: <Marke oder unbekannt>',
       'MODELL: <Modellbezeichnung oder unbekannt>',
@@ -733,7 +1147,7 @@
       'm ist deine grobe Schätzung der Entfernung von der Kamera in Metern, mit einer Nachkommastelle.',
       'Benenne gleiche Dinge immer gleich und möglichst konkret, zum Beispiel Monitor, Laptop, Drucker, Steckdosenleiste, Router. Keine Farben und keine Zustände im Namen. Wände, Boden, Decke, Fenster und Personen gehören nicht ins Inventar.',
       'Die Marker bleiben immer genau so stehen. Namen und Satz schreibst du auf ' + lang + '.',
-      BOX_RULES + ' Ist nichts zu erfassen, schreib OBJEKTE: []',
+      BOX_RULES + ' ' + WHOLE_RULES + ' Ist nichts zu erfassen, schreib OBJEKTE: []',
       focus ? 'FOKUS: Erfasse ausschließlich, was hierzu passt: «' + focus + '». Alles andere lässt du weg.' : ''
     ].filter(Boolean).join('\n');
   }
@@ -874,9 +1288,9 @@
     }
   };
 
-  /* ---------- Ein Gedanke (Umschau) oder ein Produktblick ---------- */
+  /* ---------- Ein Gedanke (Umschau), ein Produktblick oder ein Raumbild ---------- */
   async function think(shot) {
-    const myGen = gen, product = isProduct(), inRoom = isRoom();
+    const myGen = gen, product = isProduct(), inRoom = isRoom(), wantBoxes = cfg.boxes || product || inRoom;
     const t0 = performance.now();
     const gap = lastRun ? Math.max(1, Math.round((Date.now() - lastRun) / 1000)) : 0;
     setState('thinking', product ? 'Prüft das Produkt …' : inRoom ? 'Erfasst den Raum …' : 'Denkt …');
@@ -885,17 +1299,17 @@
     const draw = () => {
       if (myGen !== gen) return;
       if (product) paintProduct(raw);
-      else if (inRoom) { const see = parse(raw).see; if (see) { $('rSee').classList.remove('err'); $('rSee').textContent = see; } }
-      else { const p = el ? paint(el, raw) : parse(raw); if (p.blick) setCaption(p.blick); }
+      else if (inRoom) { const see = parse(raw).see; if (see) { roomSee = see; setCaption(see); } }
+      else { const p = el ? paint(el, raw) : parse(raw); if (p.blick) { lastBlick = p.blick; setCaption(p.blick); } }
     };
     abort = new AbortController();
     try {
-      await PROVIDERS[cfg.provider](shot.b64(), product ? productSystem() : inRoom ? roomSystem() : systemPrompt(), product ? productUser(shot.sq) : inRoom ? 'Neues Bild.' : userPrompt(gap), chunk => {
+      await PROVIDERS[cfg.provider](shot.b64(), product ? productSystem() : inRoom ? roomSystem() : systemPrompt(), product ? productUser(shot.sq) : inRoom ? 'Neues Bild.' + knownLine(shot) : userPrompt(gap, shot), chunk => {
         if (!first) first = performance.now() - t0;
         raw += chunk;
-        if (!boxed && myGen === gen && (cfg.boxes || product || inRoom)) {
+        if (!boxed && myGen === gen && wantBoxes) {
           const b = parseBoxes(raw, false);
-          if (b) { boxed = true; ingest(fromSquare(b, shot.sq), shot); }
+          if (b) { boxed = true; ingest(fromSquare(b, shot.sq), shot, true); }
         }
         if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; draw(); }); }
       }, abort.signal, { maxTokens: FRAME_TOKENS, fast: true });
@@ -906,14 +1320,15 @@
       if (el) el.classList.remove('live');
     }
     if (myGen !== gen) { if (el) el.remove(); return; }   // Modus oder Fokus wurde währenddessen gewechselt
-    if (!boxed) ingest([], shot);
+    if (!boxed && wantBoxes) ingest([], shot, false);
     frames++; lastRun = Date.now(); lastTiny = shot.tinyNow;
     const secs = 'ERSTES WORT ' + (first / 1000).toFixed(1) + ' S · FERTIG ' + ((performance.now() - t0) / 1000).toFixed(1) + ' S';
     if (inRoom) {
       const see = parse(raw).see;
       if (!/OBJEKTE\s*:/i.test(raw) && !see) throw new Error('Das Modell hat keine verwertbare Antwort geliefert. Ich versuche es mit dem nächsten Bild erneut.');
-      roomFrames++; renderRoom();
-      $('rMeta').textContent = secs;
+      roomFrames++; if (see) roomSee = see;
+      setCaption(roomSee || '–'); renderRoom();
+      $('capMeta').textContent = secs;
       return;
     }
     if (product) {
@@ -925,7 +1340,8 @@
     }
     const p = el ? paint(el, raw) : parse(raw);
     if (!p.blick && !p.see && !p.think && !/OBJEKTE\s*:/i.test(raw)) { if (el) el.remove(); throw new Error('Das Modell hat keine verwertbare Antwort geliefert. Ich versuche es mit dem nächsten Bild erneut.'); }
-    setCaption(p.blick || p.see || '–');
+    lastBlick = p.blick || p.see || '–';
+    setCaption(lastBlick);
     history.push({ blick: p.blick || '–', see: p.see || '–', think: p.think || '–' });
     if (history.length > HISTORY) history.shift();
     if (el) el.querySelector('.meta').textContent = 'BILD ' + frames + ' · ' + secs;
@@ -936,7 +1352,6 @@
   /* ---------- Produkt-Modus ---------- */
   const unknown = v => !v || /^(unbekannt|unknown|bilinmiyor|n\/a|keine?|none|[–\-?])\.?$/i.test(v.trim());
   const norm = v => v.trim().toLowerCase();
-  function field(text, key) { const m = text.match(new RegExp('^[ \\t]*' + key + '\\s*:[ \\t]*(.*)$', 'mi')); return m ? m[1].trim() : ''; }
   function parseProduct(raw) {
     const text = stripObjects(raw);
     const d = text.match(/(?:^|\n)\s*(?:DENKE|THINK|DÜŞÜN)\s*:/i);
@@ -1049,61 +1464,95 @@
     else { restartThinking(); resetProduct(name); }
   }
 
-  /* ---------- Raum-Modus und Minikarte ---------- */
+  /* ---------- Karte der gemerkten Dinge ---------- */
+  const yawOf = v => (Math.atan2(v[0], v[1]) / D2R + 360) % 360;
+  /* Blickrichtung in der Draufsicht. Schaut die Kamera steil nach unten, zählt stattdessen, wohin ihre Oberkante zeigt. */
+  function heading() {
+    if (!pose) return 0;
+    const R = pose.R, fz = R[8];
+    return (Math.atan2(R[2] + fz * R[1], R[5] + fz * R[4]) / D2R + 360) % 360;
+  }
+  const groundDist = t => (t.m || 2) * Math.max(0.15, Math.hypot(t.c[0], t.c[1]));
   function relDir(t) {
-    if (!t.c || !ori) return '';
-    const d = angDiff(yawOf(t.c), yawOf(ori.f)), a = Math.abs(d), side = d > 0 ? 'rechts' : 'links';
+    if (!pose) return '';
+    const d = angDiff(yawOf(t.c), heading()), a = Math.abs(d), side = d > 0 ? 'rechts' : 'links';
     return a < 25 ? 'vor dir' : a < 65 ? 'vorne ' + side : a < 115 ? side : a < 155 ? 'hinten ' + side : 'hinter dir';
   }
   const meters = m => m ? 'ca. ' + (m < 10 ? m.toFixed(1).replace('.', ',') : Math.round(m)) + ' m' : '';
-  function renderRoom() {
-    const n = things.length;
-    $('rTitle').textContent = 'RAUM · ' + n + (n === 1 ? ' DING' : ' DINGE') + ' · ' + roomFrames + (roomFrames === 1 ? ' BILD' : ' BILDER');
-    $('rCompass').classList.toggle('hide', !!ori);
-    $('rCompass').textContent = motionOn ? 'Kein Signal vom Lagesensor' : 'Lagesensor aktivieren';
-    $('rCompass').disabled = motionOn;
-    const list = $('rList'); list.innerHTML = '';
+  function ago(t) {
+    const s = Math.round((Date.now() - t.at) / 1000);
+    return s < 5 ? 'eben gesehen' : s < 90 ? 'vor ' + s + ' s' : 'vor ' + Math.round(s / 60) + ' min';
+  }
+  let mapOpen = false;
+  /* Draufsicht: du in der Mitte, Blickrichtung oben, jedes gemerkte Ding als Punkt in seiner Richtung und Entfernung */
+  function radar(svg, big) {
+    const pt = (deg, r) => [r * Math.sin(deg * D2R), -r * Math.cos(deg * D2R)], rr = 92;
+    let far = 0; for (const t of things) far = Math.max(far, groundDist(t));
+    const range = [1.5, 3, 6, 9, 15].find(v => v >= far * 1.08) || 15;
+    const tx = cam.videoWidth ? fov(cam.videoWidth, cam.videoHeight).tx : TANH * 9 / 16;
+    const half = Math.max(8, Math.min(60, Math.atan(tx / (pose ? pose.z : 1)) / D2R)), a = pt(-half, rr), b = pt(half, rr);
+    let h = '<circle r="92" class="ring"/><circle r="61.3" class="ring"/>' + (big ? '<circle r="30.7" class="ring"/>' : '');
+    h += '<path class="cone" d="M0,0 L' + a[0].toFixed(1) + ',' + a[1].toFixed(1) + ' A92,92 0 0 1 ' + b[0].toFixed(1) + ',' + b[1].toFixed(1) + ' Z"/>';
+    if (big) [1, 2, 3].forEach(i => { h += '<text x="3" y="' + (-30.7 * i - 2.5).toFixed(1) + '" class="lab">' + String(range / 3 * i).replace('.', ',') + ' m</text>'; });
+    const yaw = heading(), dotR = big ? 9 : 13;
+    things.forEach((t, i) => {
+      const c = pt(angDiff(yawOf(t.c), yaw), Math.max(big ? 14 : 22, Math.min(rr, rr * groundDist(t) / range))), x = c[0].toFixed(1), y = c[1].toFixed(1);
+      if (t === seek) h += '<circle cx="' + x + '" cy="' + y + '" r="' + (dotR + 4) + '" class="halo"/>';
+      h += '<circle cx="' + x + '" cy="' + y + '" r="' + dotR + '" fill="hsl(' + hue(t.key) + ' 90% 64%)"' + (running && !t.vis ? ' class="off"' : '') + '/>';
+      if (big) h += '<text x="' + x + '" y="' + (c[1] + 3.3).toFixed(1) + '" class="num">' + (i + 1) + '</text>';
+    });
+    svg.innerHTML = h + '<circle r="' + (big ? 4.5 : 8) + '" class="me"/>';
+  }
+  function drawMaps() {
+    radar($('mini'), false);
+    if (!mapOpen) return;
+    radar($('bigMap'), true);
+    const rows = $('mapList').children;
+    things.forEach((t, i) => {
+      const li = rows[i]; if (!li) return;
+      li.classList.toggle('vis', running && t.vis);
+      li.querySelector('span').textContent = [relDir(t), meters(t.m), running && t.vis ? 'gerade im Bild' : ago(t)].filter(Boolean).join(' · ');
+    });
+  }
+  function renderMapList() {
+    const n = things.length, list = $('mapList'); list.innerHTML = '';
+    $('mapCount').textContent = n ? n + (n === 1 ? ' Ding gemerkt' : ' Dinge gemerkt') : '';
+    $('mapEmpty').textContent = n ? '' : 'Noch nichts gemerkt. Starte die Kamera und schau dich um: Jedes erkannte Ding landet hier mit Richtung und Entfernung und bleibt, auch wenn du wegschwenkst.';
+    $('mapEmpty').classList.toggle('hide', !!n);
     things.forEach((t, i) => {
       const li = document.createElement('li'); li.style.setProperty('--h', hue(t.key));
       const no = document.createElement('i'); no.textContent = i + 1;
-      const name = document.createElement('b'); name.textContent = t.n;
-      const sub = document.createElement('span'); sub.className = 'dir';
-      li.appendChild(no); li.appendChild(name); li.appendChild(sub);
-      li.onclick = () => pickObject(t.n);
+      const mid = document.createElement('div'), name = document.createElement('b'), sub = document.createElement('span'); name.textContent = t.n; mid.appendChild(name); mid.appendChild(sub);
+      const go = document.createElement('button'); go.textContent = 'Hinführen'; go.classList.toggle('hide', !running); go.onclick = () => setSeek(t);
+      li.appendChild(no); li.appendChild(mid); li.appendChild(go);
       list.appendChild(li);
     });
-    if (!n && !$('rSee').textContent) $('rSee').textContent = 'Bleib an einer Stelle stehen und dreh dich langsam einmal im Kreis. Ich sammle, was ich erkenne. Tipp: Stell den Fokus auf „Elektronische Geräte“.';
-    $('rCopy').disabled = !n; $('rClear').disabled = !n;
-    drawRadars();
+    $('mapCopy').disabled = !n; $('mapClear').disabled = !n;
   }
-  /* Draufsicht: du in der Mitte, Blickrichtung oben, jedes gemerkte Ding als Punkt in seiner Richtung */
-  function radar(svg, big) {
-    const rad = D2R, pt = (deg, r) => (r * Math.sin(deg * rad)).toFixed(1) + ',' + (-r * Math.cos(deg * rad)).toFixed(1);
-    let h = '<circle r="92" class="ring"/><circle r="61" class="ring"/>' + (big ? '<circle r="31" class="ring"/>' : '');
-    h += '<path class="cone" d="M0,0 L' + pt(-20, 92) + ' A92,92 0 0 1 ' + pt(20, 92) + ' Z"/>';
-    if (big) h += '<text x="3" y="-33" class="lab">2 m</text><text x="3" y="-63" class="lab">4 m</text><text x="3" y="-94" class="lab">6 m</text>';
-    const yaw = yawOf(ori.f);
-    things.forEach((t, i) => {
-      if (!t.c) return;
-      const r = 92 * Math.max(0.4, Math.min(6, t.m || 3)) / 6, c = pt(angDiff(yawOf(t.c), yaw), r).split(',');
-      h += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + (big ? 8.5 : 9) + '" fill="hsl(' + hue(t.key) + ' 92% 64%)"/>';
-      if (big) h += '<text x="' + c[0] + '" y="' + (Number(c[1]) + 3.4) + '" class="num">' + (i + 1) + '</text>';
-    });
-    svg.innerHTML = h + '<circle r="' + (big ? 4 : 6) + '" class="me"/>';
+  /* Nach jeder Änderung an den gemerkten Dingen */
+  function mapChanged() {
+    $('mapN').textContent = things.length || '';
+    if (isRoom()) renderRoom();
+    if (mapOpen) renderMapList();
+    drawMaps();
   }
-  function drawRadars() {
-    if (isRoom()) {
-      const subs = $('rList').querySelectorAll('.dir');
-      things.forEach((t, i) => { if (subs[i]) subs[i].textContent = [relDir(t), meters(t.m)].filter(Boolean).join(' · '); });
-      $('rMap').classList.toggle('hide', !ori);
-      if (ori) radar($('rMap'), true);
-    }
-    const mini = $('mini'), show = cfg.mode === 'observe' && running && !!ori && things.some(t => t.c);
-    mini.classList.toggle('hide', !show);
-    if (show) radar(mini, false);
+  function syncMotion() {
+    const ask = !motionOn && typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function';
+    $('motionBtn').classList.toggle('hide', !ask);
   }
-  function roomText() {
-    const lines = ['Rauminventar (Live-Blick, ' + new Date().toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) + ')'];
+  function openMap() { mapOpen = true; syncMotion(); renderMapList(); drawMaps(); $('mapSheet').classList.add('open'); }
+  function closeMap() { mapOpen = false; $('mapSheet').classList.remove('open'); }
+  /* Wegweiser zu einem gemerkten Ding einschalten */
+  function setSeek(t) {
+    seek = t; seekHit = 0; closeMap();
+    if (running) { watching(); renderBoxes(); }
+  }
+  function renderRoom() {
+    const n = things.length;
+    $('capLabel').textContent = 'Raum · ' + n + (n === 1 ? ' Ding' : ' Dinge') + (roomFrames ? ' · ' + roomFrames + (roomFrames === 1 ? ' Bild' : ' Bilder') : '');
+  }
+  function mapText() {
+    const lines = ['Gemerkte Dinge (Live-Blick, ' + new Date().toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) + ')'];
     things.forEach((t, i) => lines.push((i + 1) + '. ' + t.n + [meters(t.m), relDir(t)].filter(Boolean).map(v => ', ' + v).join('') + ', ' + t.seen + '× gesehen'));
     lines.push('Entfernungen sind Schätzungen, Richtungen gelten vom Standpunkt und der Blickrichtung beim Kopieren aus.');
     return lines.join('\n');
@@ -1114,26 +1563,30 @@
   /* Pause zwischen zwei Bildern; ein Wechsel von Modus, Fokus oder Ziel beendet sie sofort */
   let poke = null;
   const nap = ms => new Promise(r => { const t = setTimeout(done, ms); function done() { clearTimeout(t); poke = null; r(); } poke = done; });
+  let loopId = 0;
   async function loop() {
+    const my = ++loopId, alive = () => running && my === loopId;   // nach Stopp und erneutem Start darf die alte Schleife nicht weiterlaufen
     let backoff = 0;
-    while (running) {
+    while (alive()) {
       if (document.hidden) { await sleep(400); continue; }
       const shot = snapshot();
       if (!shot) { await sleep(200); continue; }
       const wantResearch = isProduct() && forceResearch && prod.art;
       const idle = Date.now() - lastRun;
-      if (!wantResearch && cfg.changeOnly && lastRun && shot.diff < 0.035 && idle < (isProduct() ? IDLE_MAX_PRODUCT : IDLE_MAX)) {
-        setState('watching', (isProduct() ? 'Zielt' : isRoom() ? 'Erfasst' : 'Schaut') + ' · Bild unverändert');
+      const turned = lastShotF ? angle(lastShotF, [shot.pose.R[2], shot.pose.R[5], shot.pose.R[8]]) > 8 : true;
+      if (!wantResearch && cfg.changeOnly && lastRun && !turned && shot.diff < 0.035 && idle < (isProduct() ? IDLE_MAX_PRODUCT : IDLE_MAX)) {
+        setState('watching', WATCH[cfg.mode] + ' · Bild unverändert');
         await sleep(350); continue;
       }
       const started = Date.now();
+      lastAsk = started; lastShotF = [shot.pose.R[2], shot.pose.R[5], shot.pose.R[8]];
       try {
         if (wantResearch) { forceResearch = false; await research(shot); }
         else await think(shot);
         backoff = 0;
-        if (running) setState('watching', isProduct() ? 'Zielt' : isRoom() ? 'Erfasst' : 'Schaut');
+        if (alive()) watching();
       } catch (e) {
-        if (!running) break;
+        if (!alive()) break;
         if (e && e.name === 'AbortError') continue;   // Modus oder Fokus gewechselt
         const s = e.status;
         if (isDemo() && s) {
@@ -1157,25 +1610,36 @@
     }
   }
 
+  function resetPose() { const S = sensorR(); pose = { R: S || startPose().R, z: 1 }; trk.key = null; trk.sens = null; trk.vel = null; sensAlign = null; }
   async function start() {
     if (running) return;
     if (!configured()) { openSheet(); return; }
     unlockSpeech();
-    enableMotion();   // vor dem ersten await, damit die Abfrage des iPhones noch zum Tippen gehört
+    enableMotion().then(syncMotion);   // vor dem ersten await, damit die Abfrage des iPhones noch zum Tippen gehört
     try { setState('idle', 'Kamera startet …'); await openCam(); }
     catch (e) { showError(camError(e)); setState('error', 'Keine Kamera'); return; }
-    running = true; document.body.classList.add('running'); $('goText').textContent = 'Stopp';
-    setState('watching', isProduct() ? 'Zielt' : isRoom() ? 'Erfasst' : 'Schaut');
+    /* Die gemerkten Dinge bleiben über Stopp und Start erhalten. Mit Lagesensor wissen wir auch, wohin das Handy inzwischen zeigt. */
+    const S = sensorR();
+    if (!pose || !things.length) resetPose();
+    else if (S && sensAlign) pose.R = ortho(mm(sensAlign, S));
+    else relocate = true;   // ohne Sensor: an den ersten wiedererkannten Dingen neu orientieren
+    trk.fails = 0; trk.lostAt = 0; trk.still = 0; lastShotF = null;
+    running = true; document.body.classList.add('running'); document.body.classList.remove('fresh'); $('goText').textContent = 'Stopp';
+    if (!isProduct() && !isRoom() && !$('capText').textContent) setCaption('Einen Moment, ich schaue mich um …');
+    watching();
     try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {}
     loop();
   }
   function stop() {
-    running = false; document.body.classList.remove('running'); $('goText').textContent = 'Start';
+    running = false; loopId++; document.body.classList.remove('running', 'lost'); $('goText').textContent = 'Start';
     if (abort) abort.abort();
+    if (poke) poke();
     if (wake) { wake.release().catch(() => {}); wake = null; }
     if (window.speechSynthesis) speechSynthesis.cancel();
+    const S = sensorR(); sensAlign = S && pose ? mm(pose.R, mT(S)) : null;
     closeCam();
-    renderBoxes(); drawRadars();
+    seek = null; seekHit = 0; things.forEach(t => { t.vis = false; });
+    renderBoxes(); mapChanged();
     setState('idle', 'Pausiert');
   }
   document.addEventListener('visibilitychange', async () => {
@@ -1197,16 +1661,19 @@
   }
 
   /* ---------- Modus und Fokus ---------- */
+  let lastBlick = '';
   function restartThinking(forget) { gen++; if (abort) abort.abort(); clearBoxes(forget); lastRun = 0; if (poke) poke(); }
   function setMode(mode, hint) {
     cfg.mode = MODES.includes(mode) ? mode : 'observe'; persist();
-    if (isRoom()) enableMotion();   // zuerst, damit die Freigabe-Abfrage des iPhones noch zum Tippen gehört
     document.body.dataset.mode = cfg.mode;
     [...$('mode').children].forEach(b => b.classList.toggle('on', b.dataset.v === cfg.mode));
     restartThinking();
     resetProduct(hint);
-    if (isRoom()) { $('rSee').classList.remove('err'); renderRoom(); }
-    if (running) setState('watching', isProduct() ? 'Zielt' : isRoom() ? 'Erfasst' : 'Schaut');
+    $('capMeta').textContent = '';
+    if (isRoom()) { renderRoom(); setCaption(roomSee || 'Bleib an einer Stelle stehen und dreh dich langsam im Kreis. Ich trage alles, was ich erkenne, in die Karte ein.'); }
+    else { $('capLabel').textContent = 'Schaut auf'; setCaption(lastBlick || (running ? 'Einen Moment, ich schaue mich um …' : '')); }
+    $('cap').title = isRoom() ? 'Karte öffnen' : 'Gedanken ein- oder ausklappen';
+    if (running) watching();
   }
   function renderFocus() {
     const cur = cfg.focus.trim();
@@ -1220,7 +1687,7 @@
   }
   function setFocus(v) {
     cfg.focus = String(v || '').trim().slice(0, 160); persist();
-    history = []; restartThinking(true); renderFocus(); if (isRoom()) renderRoom();
+    history = []; restartThinking(true); renderFocus();
     $('focusPop').classList.remove('open');
   }
   $('focusBtn').onclick = e => { e.stopPropagation(); $('focusPop').classList.toggle('open'); };
@@ -1229,15 +1696,19 @@
   document.addEventListener('click', () => $('focusPop').classList.remove('open'));
   [...$('mode').children].forEach(b => { b.onclick = () => { if (b.dataset.v !== cfg.mode) setMode(b.dataset.v); }; });
   $('pNew').onclick = () => { restartThinking(); resetProduct(); };
-  $('rCompass').onclick = () => enableMotion();
-  $('rClear').onclick = () => { $('rSee').textContent = ''; $('rMeta').textContent = ''; restartThinking(true); renderRoom(); };
-  $('mini').onclick = () => setMode('room');
-  function applyThoughts() { document.body.classList.toggle('thoughts', !!cfg.thoughts); $('cap').setAttribute('aria-expanded', String(!!cfg.thoughts)); }
-  $('cap').onclick = () => { cfg.thoughts = !cfg.thoughts; persist(); applyThoughts(); history = []; restartThinking(); if (cfg.thoughts) feed.scrollTop = feed.scrollHeight; };
-  $('rCopy').onclick = async () => {
-    const b = $('rCopy');
-    try { await navigator.clipboard.writeText(roomText()); b.textContent = 'Kopiert'; } catch (e) { b.textContent = 'Kopieren nicht möglich'; }
+  $('mapBtn').onclick = openMap;
+  $('mapSheet').addEventListener('click', e => { if (e.target === $('mapSheet')) closeMap(); });
+  $('motionBtn').onclick = () => enableMotion().then(syncMotion);
+  $('mapClear').onclick = () => { roomSee = ''; restartThinking(true); if (isRoom()) setMode('room'); };
+  $('mapCopy').onclick = async () => {
+    const b = $('mapCopy');
+    try { await navigator.clipboard.writeText(mapText()); b.textContent = 'Kopiert'; } catch (e) { b.textContent = 'Kopieren nicht möglich'; }
     setTimeout(() => { b.textContent = 'Liste kopieren'; }, 1800);
+  };
+  function applyThoughts() { document.body.classList.toggle('thoughts', !!cfg.thoughts); $('cap').setAttribute('aria-expanded', String(!!cfg.thoughts)); }
+  $('cap').onclick = () => {
+    if (isRoom()) { openMap(); return; }
+    cfg.thoughts = !cfg.thoughts; persist(); applyThoughts(); history = []; restartThinking(); if (cfg.thoughts) feed.scrollTop = feed.scrollHeight;
   };
   $('pGo').onclick = () => { if (prod.art && running) { prod.doneKey = ''; forceResearch = true; $('pGo').disabled = true; if (poke) poke(); } };
 
@@ -1292,7 +1763,7 @@
   };
   $('wipe').onclick = () => {
     try { localStorage.removeItem(STORE); } catch (e) {}
-    cfg = Object.assign({}, defaults, { keys: {}, models: {} }); history = [];
+    cfg = Object.assign({}, defaults, { keys: {}, models: {} }); history = []; lastBlick = '';
     if (running) stop();
     clearBoxes(true); applyThoughts(); setMode(cfg.mode); renderFocus();
     openSheet();
@@ -1302,11 +1773,11 @@
   $('go').onclick = () => running ? stop() : start();
   $('flip').onclick = async () => {
     cfg.facing = cfg.facing === 'environment' ? 'user' : 'environment'; persist();
-    clearBoxes(true);
+    clearBoxes(true); resetPose();
     if (running) { try { await openCam(); } catch (e) { showError(camError(e)); } }
   };
 
-  applyThoughts(); setMode(cfg.mode); renderFocus();
+  applyThoughts(); setMode(cfg.mode); renderFocus(); mapChanged();
   if (!configured()) openSheet();
 })();
 </script>
