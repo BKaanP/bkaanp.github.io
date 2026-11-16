@@ -108,6 +108,72 @@
   .seg button.on { background: var(--ink); color: #111; border-color: var(--ink); }
   #save { width: 100%; height: 54px; margin-top: 22px; border: 0; border-radius: 27px; background: var(--accent); color: #1a1205; font: 700 16px/1 var(--sans); }
   #wipe { width: 100%; margin-top: 12px; padding: 10px; background: none; border: 0; color: var(--dim); font-size: 13px; text-decoration: underline; }
+
+  /* Werkzeugzeile: Fokus und Modus */
+  #tools { position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top) + 64px); display: flex; gap: 8px; padding: 0 14px; align-items: center; }
+  .pill { height: 36px; border-radius: 18px; border: 1px solid var(--line); background: rgba(0,0,0,.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    color: var(--ink); font: 600 13px/1 var(--sans); padding: 0 13px; display: flex; align-items: center; gap: 7px; min-width: 0; }
+  #focusBtn { flex: 0 1 auto; max-width: 58%; }
+  #focusBtn b { font: 600 10px/1 var(--mono); letter-spacing: .09em; color: var(--accent); text-transform: uppercase; flex: none; }
+  #focusBtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #mode { margin-left: auto; flex: none; display: flex; padding: 3px; gap: 2px; height: 36px; border-radius: 18px; border: 1px solid var(--line);
+    background: rgba(0,0,0,.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  #mode button { border: 0; background: none; border-radius: 15px; padding: 0 12px; font: 600 13px/1 var(--sans); color: var(--dim); }
+  #mode button.on { background: var(--ink); color: #111; }
+  #focusPop { position: absolute; left: 14px; right: 14px; top: calc(env(safe-area-inset-top) + 108px); z-index: 5; display: none; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 16px; padding: 14px; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  #focusPop.open { display: block; }
+  #focusPop .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  #focusPop .chips button { border: 1px solid var(--line); background: transparent; border-radius: 16px; padding: 9px 12px; font: 500 13.5px/1 var(--sans); color: var(--ink); }
+  #focusPop .chips button.on { background: var(--accent); border-color: var(--accent); color: #1a1205; font-weight: 700; }
+  #focusPop form { display: flex; gap: 8px; margin-top: 12px; }
+  #focusPop form input { flex: 1; min-width: 0; }
+  #focusPop form button { border: 0; border-radius: 12px; background: var(--ink); color: #111; font: 700 14px/1 var(--sans); padding: 0 16px; }
+
+  /* Rahmen um erkannte Dinge */
+  #boxes { position: absolute; inset: 0; pointer-events: none; overflow: hidden; transition: opacity .35s; }
+  #boxes.stale { opacity: .3; }
+  .box { position: absolute; border: 2px solid hsl(var(--h) 92% 64%); border-radius: 7px; pointer-events: auto; box-shadow: 0 0 0 1px rgba(0,0,0,.4), inset 0 0 0 1px rgba(0,0,0,.25); }
+  .box span { position: absolute; left: -2px; bottom: 100%; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    background: hsl(var(--h) 92% 64%); color: #0b0c0e; font: 700 11.5px/1 var(--sans); padding: 4px 7px; border-radius: 6px 6px 6px 0; }
+  .box.low span { bottom: auto; top: -2px; border-radius: 6px 0 6px 0; }
+  .box.target { border-width: 3px; border-color: var(--accent); }
+  .box.target span { background: var(--accent); }
+
+  /* Produkt-Modus */
+  #aim { position: absolute; left: 50%; top: 28%; width: 68px; height: 68px; margin: -34px 0 0 -34px; pointer-events: none; display: none; }
+  body[data-mode="product"] #aim { display: block; }
+  #aim i { position: absolute; inset: 0; border: 1.5px solid var(--ink); border-radius: 50%; opacity: .6; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+  #aim::before, #aim::after { content: ""; position: absolute; background: var(--ink); box-shadow: 0 0 0 .5px rgba(0,0,0,.5); }
+  #aim::before { left: 50%; top: 24px; width: 2px; height: 20px; margin-left: -1px; }
+  #aim::after { top: 50%; left: 24px; height: 2px; width: 20px; margin-top: -1px; }
+  #product { display: none; pointer-events: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 14px 14px 12px;
+    max-height: 100%; overflow-y: auto; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  body[data-mode="product"] #product { display: block; }
+  body[data-mode="product"] #feed { display: none; }
+  body[data-mode="product"] #feedWrap { top: 40%; padding-left: 12px; padding-right: 12px; }
+  #pHead { display: flex; flex-wrap: wrap; gap: 6px; }
+  #pHead:empty { display: none; }
+  .chip { font: 600 13px/1 var(--sans); padding: 7px 9px; border-radius: 10px; background: rgba(255,255,255,.09); }
+  .chip b { font: 600 9.5px/1 var(--mono); letter-spacing: .09em; color: var(--accent); margin-right: 6px; text-transform: uppercase; }
+  .chip.unknown { color: var(--faint); font-weight: 500; }
+  .chip.unknown b { color: var(--faint); }
+  #pAsk { margin: 12px 0 0; font: 400 18px/1.38 var(--serif); text-wrap: pretty; }
+  #pHead:empty + #pAsk { margin-top: 0; }
+  #pAsk.err { font: 500 14px/1.45 var(--sans); color: var(--err); }
+  #pThink { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--dim); }
+  #pThink:empty, #pMeta:empty { display: none; }
+  #pMeta { font: 500 10px/1 var(--mono); color: var(--faint); margin-top: 8px; letter-spacing: .06em; }
+  #pRes { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 11px; }
+  #pRes .st { font: 600 10.5px/1.4 var(--mono); letter-spacing: .08em; color: var(--dim); margin-bottom: 6px; }
+  #pRes .r { display: grid; grid-template-columns: 64px 1fr; gap: 8px; padding: 4px 0; font-size: 14px; line-height: 1.42; }
+  #pRes .r b { font: 600 10px/2 var(--mono); letter-spacing: .08em; color: var(--accent); }
+  #pRes .src { margin-top: 8px; font-size: 12px; color: var(--dim); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  #pRes .src a { color: var(--accent); }
+  #pActs { display: flex; gap: 8px; margin-top: 12px; }
+  #pActs button { flex: 1; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: transparent; font: 600 13.5px/1 var(--sans); color: var(--ink); }
+  #pActs button.pri { background: var(--accent); border-color: var(--accent); color: #1a1205; }
+  #pActs button:disabled { opacity: .38; }
   .hide { display: none !important; }
 </style>
 </head>
@@ -116,6 +182,8 @@
 <div id="stage">
   <video id="cam" playsinline muted autoplay></video>
   <div id="shade"></div>
+  <div id="boxes"></div>
+  <div id="aim"><i></i></div>
 
   <div id="top">
     <div id="status"><i id="dot"></i><span id="statusText">Bereit</span></div>
@@ -127,9 +195,26 @@
     </button>
   </div>
 
+  <div id="tools">
+    <button class="pill" id="focusBtn"><b>Fokus</b><span id="focusText">Alles</span></button>
+    <div id="mode"><button data-v="observe">Umschau</button><button data-v="product">Produkt</button></div>
+  </div>
+  <div id="focusPop">
+    <div class="chips" id="focusChips"></div>
+    <form id="focusForm"><input id="focusOwn" type="text" autocomplete="off" placeholder="Eigener Fokus, z. B. nur Kabel und Stecker"><button>OK</button></form>
+  </div>
+
   <div id="feedWrap">
     <div id="feed">
-      <div id="hint">Tippe auf Start. Die KI schaut dann durch deine Kamera und denkt hier laut mit.</div>
+      <div id="hint">Tippe auf Start. Die KI schaut durch deine Kamera, rahmt ein, was sie erkennt, und denkt hier laut mit. Oben stellst du den Fokus ein oder wechselst in den Produkt-Modus.</div>
+    </div>
+    <div id="product">
+      <div id="pHead"></div>
+      <p id="pAsk"></p>
+      <p id="pThink"></p>
+      <div id="pMeta"></div>
+      <div id="pActs"><button id="pNew">Neues Produkt</button><button id="pGo" class="pri" disabled>Jetzt recherchieren</button></div>
+      <div id="pRes" class="hide"></div>
     </div>
   </div>
 
@@ -151,7 +236,7 @@
       <option value="openai">Eigener Endpunkt (OpenAI-kompatibel)</option>
     </select>
 
-    <p class="note hide" id="demoNote">Läuft über den Zugang des Seitenbetreibers mit Claude Haiku. Begrenzt auf rund 30 Bilder pro Stunde und mindestens 6 Sekunden Takt. Für mehr wähle oben einen Anbieter mit eigenem Schlüssel.</p>
+    <p class="note hide" id="demoNote">Läuft über den Zugang des Seitenbetreibers mit Claude Haiku. Begrenzt auf rund 30 Anfragen pro Stunde und mindestens 6 Sekunden Takt. Für mehr wähle oben einen Anbieter mit eigenem Schlüssel.</p>
 
     <div id="baseWrap" class="hide">
       <label for="base">Basis-URL</label>
@@ -178,9 +263,13 @@
       <button data-v="de">Deutsch</button><button data-v="en">English</button><button data-v="tr">Türkçe</button>
     </div>
 
-    <label for="focus">Worauf soll sie achten? (optional)</label>
-    <textarea id="focus" placeholder="z. B. „Achte auf Texte und lies sie vor“ oder „Kommentiere wie ein Naturfilmer“"></textarea>
+    <label for="extra">Zusätzliche Anweisung (optional)</label>
+    <textarea id="extra" placeholder="z. B. „Kommentiere wie ein Naturfilmer“. Den Fokus stellst du direkt auf dem Hauptbildschirm ein."></textarea>
 
+    <div class="row">
+      <div>Rahmen anzeigen<small>Erkannte Dinge im Bild einrahmen und beschriften</small></div>
+      <div class="sw"><input type="checkbox" id="boxesOn"><span></span></div>
+    </div>
     <div class="row">
       <div>Nur bei Veränderung<small>Stillstehende Bilder überspringen, spätestens nach 20 s neu denken</small></div>
       <div class="sw"><input type="checkbox" id="changeOnly"><span></span></div>
@@ -205,7 +294,7 @@
   const STORE = 'liveblick.v2';
   const PROXY_URL = 'https://bkaanp-proxy.batuhan-kaan-piskin.workers.dev/v1/messages';
   const DEMO_MODEL = 'claude-haiku-5-5', DEMO_MIN_GAP = 6;
-  const LIMIT_MSG = 'Das Demo-Kontingent ist aufgebraucht (rund 30 Bilder pro Stunde). In etwa einer Stunde geht es weiter, oder du trägst in den Einstellungen einen eigenen Schlüssel ein.';
+  const LIMIT_MSG = 'Das Demo-Kontingent ist aufgebraucht (rund 30 Anfragen pro Stunde). In etwa einer Stunde geht es weiter, oder du trägst in den Einstellungen einen eigenen Schlüssel ein.';
   const DEFAULT_MODEL = { demo: DEMO_MODEL, gemini: 'gemini-flash-latest', anthropic: 'claude-haiku-5-5', openai: '' };
   const KEY_NOTE = {
     demo: '',
@@ -214,9 +303,10 @@
     openai: 'Bei lokalen Modellen ohne Schlüssel einfach leer lassen.'
   };
   const LANG = { de: 'Deutsch', en: 'English', tr: 'Türkçe' };
-  const IDLE_MAX = 20000, HISTORY = 6, MAX_ENTRIES = 40, LONG_SIDE = 768;
+  const PRESETS = ['Elektronische Geräte', 'Texte und Schilder', 'Lebensmittel', 'Pflanzen', 'Möbel', 'Werkzeug'];
+  const IDLE_MAX = 20000, IDLE_MAX_PRODUCT = 12000, HISTORY = 6, MAX_ENTRIES = 40;
 
-  const defaults = { provider: 'demo', keys: {}, models: {}, base: '', interval: 7, lang: 'de', focus: '', changeOnly: true, speak: false, facing: 'environment' };
+  const defaults = { provider: 'demo', keys: {}, models: {}, base: '', interval: 7, lang: 'de', focus: '', extra: '', mode: 'observe', boxes: true, changeOnly: true, speak: false, facing: 'environment' };
   let cfg = load();
   function load() {
     const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
@@ -228,13 +318,17 @@
   function persist() { try { localStorage.setItem(STORE, JSON.stringify(cfg)); } catch (e) {} }
   const keyOf = () => (cfg.keys[cfg.provider] || '').trim();
   const isDemo = () => cfg.provider === 'demo';
+  const isProduct = () => cfg.mode === 'product';
   const modelOf = () => isDemo() ? DEMO_MODEL : (cfg.models[cfg.provider] || DEFAULT_MODEL[cfg.provider] || '').trim();
   const configured = () => isDemo() ? true : cfg.provider === 'openai' ? !!(cfg.base.trim() && modelOf()) : !!keyOf();
   const gapSec = () => isDemo() ? Math.max(DEMO_MIN_GAP, cfg.interval) : cfg.interval;
+  const clamp = v => Math.max(0, Math.min(1000, v));
 
-  const cam = $('cam'), feed = $('feed'), grab = $('grab'), tiny = $('tiny');
-  let stream = null, running = false, abort = null, wake = null;
+  const cam = $('cam'), feed = $('feed'), grab = $('grab'), tiny = $('tiny'), boxesEl = $('boxes');
+  let stream = null, running = false, abort = null, wake = null, gen = 0;
   let history = [], lastTiny = null, lastRun = 0, frames = 0, geminiLowThinking = true;
+  let boxData = [], boxTiny = null;
+  let prod = null, forceResearch = false, researching = false;
 
   /* ---------- Anzeige ---------- */
   function setState(state, text) { document.body.dataset.state = state; $('statusText').textContent = text; }
@@ -250,8 +344,18 @@
     if (stick) feed.scrollTop = feed.scrollHeight;
     return el;
   }
-  function parse(raw) {
+  const MARK = '(?:SEHE|SEE|GÖR|DENKE|THINK|DÜŞÜN|ART|MARKE|MODELL|BITTE)';
+  /* Entfernt die OBJEKTE-Zeile (auch eine halb gestreamte oder mehrzeilige) aus dem sichtbaren Text */
+  function stripObjects(raw) {
     const text = raw.replace(/\*\*/g, '');
+    const i = text.search(/OBJEKTE\s*:/i);
+    if (i < 0) return text;
+    const rest = text.slice(i);
+    const j = rest.search(new RegExp('^[ \\t]*' + MARK + '\\s*:', 'im'));
+    return text.slice(0, i) + (j < 0 ? '' : rest.slice(j));
+  }
+  function parse(raw) {
+    const text = stripObjects(raw);
     const m = text.match(/(?:^|\n)\s*(?:DENKE|THINK|DÜŞÜN)\s*:/i);
     let see = '', think = '';
     if (m) { see = text.slice(0, m.index); think = text.slice(m.index + m[0].length); }
@@ -271,6 +375,7 @@
     return p;
   }
   function showError(msg) {
+    if (isProduct()) { $('pAsk').textContent = msg; $('pAsk').classList.add('err'); return; }
     const el = addEntry('err');
     el.querySelector('.think').textContent = msg;
     feed.scrollTop = feed.scrollHeight;
@@ -302,46 +407,170 @@
   }
 
   /* ---------- Bild greifen ---------- */
-  function snapshot() {
-    const w = cam.videoWidth, h = cam.videoHeight;
-    if (!w || !h) return null;
-    const s = Math.min(1, LONG_SIDE / Math.max(w, h));
-    grab.width = Math.round(w * s); grab.height = Math.round(h * s);
-    grab.getContext('2d').drawImage(cam, 0, 0, grab.width, grab.height);
+  function tinyNow() {
+    if (!cam.videoWidth) return null;
     const t = tiny.getContext('2d', { willReadFrequently: true });
     t.drawImage(cam, 0, 0, 24, 24);
     const px = t.getImageData(0, 0, 24, 24).data, g = new Uint8Array(576);
     for (let i = 0; i < 576; i++) g[i] = (px[i * 4] * 3 + px[i * 4 + 1] * 6 + px[i * 4 + 2]) / 10;
-    let diff = 1;
-    if (lastTiny) { let sum = 0; for (let i = 0; i < 576; i++) sum += Math.abs(g[i] - lastTiny[i]); diff = sum / 576 / 255; }
-    return { tinyNow: g, diff, b64: () => grab.toDataURL('image/jpeg', 0.62).split(',')[1] };
+    return g;
+  }
+  function tinyDiff(a, b) { let sum = 0; for (let i = 0; i < 576; i++) sum += Math.abs(a[i] - b[i]); return sum / 576 / 255; }
+  function snapshot() {
+    const w = cam.videoWidth, h = cam.videoHeight;
+    if (!w || !h) return null;
+    const longSide = isProduct() ? 1280 : 768;   // Typenschilder brauchen mehr Auflösung
+    const s = Math.min(1, longSide / Math.max(w, h));
+    grab.width = Math.round(w * s); grab.height = Math.round(h * s);
+    grab.getContext('2d').drawImage(cam, 0, 0, grab.width, grab.height);
+    const g = tinyNow();
+    const b64 = grab.toDataURL('image/jpeg', isProduct() ? 0.74 : 0.62).split(',')[1];
+    return { tinyNow: g, diff: lastTiny ? tinyDiff(g, lastTiny) : 1, b64: () => b64 };
   }
 
-  /* ---------- Prompt ---------- */
+  /* ---------- Rahmen um erkannte Dinge ---------- */
+  function hue(name) { let h = 0; for (const c of String(name).toLowerCase()) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
+  /* Wo das (per object-fit: cover beschnittene) Kamerabild auf dem Bildschirm liegt */
+  function frameRect() {
+    const W = cam.clientWidth, H = cam.clientHeight, vw = cam.videoWidth, vh = cam.videoHeight;
+    if (!W || !H || !vw || !vh) return null;
+    const s = Math.max(W / vw, H / vh);
+    return { W, H, w: vw * s, h: vh * s, ox: (W - vw * s) / 2, oy: (H - vh * s) / 2 };
+  }
+  function layoutBoxes() {
+    boxesEl.innerHTML = '';
+    const f = frameRect(); if (!f || !cfg.boxes) return;
+    const mirror = cfg.facing === 'user';
+    for (const b of boxData) {
+      let x1 = f.ox + b.x1 / 1000 * f.w, x2 = f.ox + b.x2 / 1000 * f.w;
+      const y1 = Math.max(0, f.oy + b.y1 / 1000 * f.h), y2 = Math.min(f.H, f.oy + b.y2 / 1000 * f.h);
+      if (mirror) { const t = f.W - x2; x2 = f.W - x1; x1 = t; }
+      x1 = Math.max(0, x1); x2 = Math.min(f.W, x2);
+      if (x2 - x1 < 14 || y2 - y1 < 14) continue;
+      const el = document.createElement('div');
+      el.className = 'box' + (y1 < 30 ? ' low' : '') + (b.target ? ' target' : '');
+      el.style.cssText = 'left:' + x1 + 'px;top:' + y1 + 'px;width:' + (x2 - x1) + 'px;height:' + (y2 - y1) + 'px;--h:' + hue(b.n);
+      const tag = document.createElement('span'); tag.textContent = b.n; el.appendChild(tag);
+      el.onclick = () => pickObject(b.n);
+      boxesEl.appendChild(el);
+    }
+  }
+  function setBoxes(list, tinyAtCapture) { boxData = list; boxTiny = tinyAtCapture; boxesEl.classList.remove('stale'); layoutBoxes(); }
+  /* Liest die OBJEKTE-Zeile. Gibt null zurück, solange sie noch nicht vollständig gestreamt ist. */
+  function parseBoxes(raw, done) {
+    const i = raw.search(/OBJEKTE\s*:/i); if (i < 0) return done ? [] : null;
+    const a = raw.indexOf('[', i); if (a < 0) return done ? [] : null;
+    let depth = 0, end = -1, inStr = false;
+    for (let k = a; k < raw.length; k++) {
+      const ch = raw[k];
+      if (inStr) { if (ch === '\\') k++; else if (ch === '"') inStr = false; continue; }
+      if (ch === '"') inStr = true;
+      else if (ch === '[') depth++;
+      else if (ch === ']' && --depth === 0) { end = k; break; }
+    }
+    if (end < 0) return done ? [] : null;
+    let arr; try { arr = JSON.parse(raw.slice(a, end + 1)); } catch (e) { return []; }
+    if (!Array.isArray(arr)) return [];
+    const out = [];
+    for (const o of arr) {
+      if (!o || typeof o !== 'object') continue;
+      const n = String(o.n || o.name || o.label || '').trim().slice(0, 40); if (!n) continue;
+      let c = null;
+      if ([o.x1, o.y1, o.x2, o.y2].every(v => typeof v === 'number')) c = [o.x1, o.y1, o.x2, o.y2];
+      else if (Array.isArray(o.box_2d) && o.box_2d.length === 4) c = [o.box_2d[1], o.box_2d[0], o.box_2d[3], o.box_2d[2]];   // Gemini-Konvention: ymin, xmin, ymax, xmax
+      else { const b = o.b || o.box || o.bbox; if (Array.isArray(b) && b.length === 4 && b.every(v => typeof v === 'number')) c = b; }
+      if (!c) continue;
+      if (c.every(v => v >= 0 && v <= 1)) c = c.map(v => v * 1000);
+      const x1 = clamp(Math.min(c[0], c[2])), x2 = clamp(Math.max(c[0], c[2])), y1 = clamp(Math.min(c[1], c[3])), y2 = clamp(Math.max(c[1], c[3]));
+      if (x2 - x1 < 8 || y2 - y1 < 8) continue;
+      out.push({ n, x1, y1, x2, y2 });
+      if (out.length >= 8) break;
+    }
+    return out;
+  }
+  /* Rahmen gehören zum aufgenommenen Bild. Bewegt sich die Kamera weg, verblassen und verschwinden sie. */
+  setInterval(() => {
+    if (!running || !boxData.length || !boxTiny) return;
+    const g = tinyNow(); if (!g) return;
+    const d = tinyDiff(g, boxTiny);
+    if (d > 0.14) { boxData = []; layoutBoxes(); } else boxesEl.classList.toggle('stale', d > 0.07);
+  }, 400);
+  window.addEventListener('resize', layoutBoxes);
+
+  /* ---------- Prompts ---------- */
+  const BOX_RULES = 'Zu OBJEKTE: x1,y1 ist die linke obere und x2,y2 die rechte untere Ecke des Rahmens, als ganze Zahlen von 0 bis 1000, relativ zur Bildbreite (x) und zur Bildhöhe (y), Ursprung links oben. Zieh jeden Rahmen eng um das Ding. Die ganze Liste steht in einer einzigen Zeile.';
   function systemPrompt() {
-    const lang = LANG[cfg.lang] || 'Deutsch';
+    const lang = LANG[cfg.lang] || 'Deutsch', focus = cfg.focus.trim();
     return [
       'Du bist ein wacher, neugieriger Beobachter und schaust live durch die Kamera eines Handys in die Welt. Alle paar Sekunden bekommst du ein neues Standbild aus dem laufenden Video.',
       'Antworte immer in genau diesem Format, ohne Markdown, ohne Listen, ohne Anrede:',
+      cfg.boxes ? 'OBJEKTE: <gültiges JSON: Liste der höchstens sechs wichtigsten sichtbaren Dinge, je {"n":"Name","x1":0,"y1":0,"x2":0,"y2":0}>' : '',
       'SEHE: <ein knapper Satz, was konkret im Bild ist>',
       'DENKE: <zwei bis drei Sätze innerer Monolog in Ich-Form: was dir auffällt, was du daraus schließt oder vermutest, was sich gegenüber vorher verändert hat, was dich neugierig macht>',
-      'Die Marker SEHE: und DENKE: bleiben immer genau so stehen. Den Inhalt schreibst du auf ' + lang + '.',
+      'Die Marker ' + (cfg.boxes ? 'OBJEKTE:, ' : '') + 'SEHE: und DENKE: bleiben immer genau so stehen. Den Inhalt und die Namen schreibst du auf ' + lang + '.',
+      cfg.boxes ? BOX_RULES + ' Namen kurz, ein bis drei Wörter. Menschen heißen nur „Person“. Ist nichts zu markieren, schreib OBJEKTE: []' : '',
+      focus ? 'FOKUS: Der Mensch hinter der Kamera will, dass du ausschließlich auf Folgendes achtest: «' + focus + '». Markiere in OBJEKTE nur Dinge, die dazu passen, und sprich in SEHE und DENKE nur darüber. Alles andere im Bild ignorierst du vollständig. Passt gerade nichts dazu, gib OBJEKTE: [] aus und sag in einem Satz, dass du im Moment nichts Passendes siehst.' : '',
       'Knüpfe an deine früheren Beobachtungen an, statt jedes Mal neu anzufangen. Wiederhole keine Formulierungen. Wenn sich kaum etwas geändert hat, spinne den letzten Gedanken weiter oder richte den Blick auf ein Detail, das du noch nicht erwähnt hast.',
       'Benenne Vermutungen als Vermutungen. Lies erkennbaren Text vor, wenn er interessant ist. Beschreibe Menschen nur allgemein und versuche nie, jemanden anhand seines Gesichts zu identifizieren.',
-      cfg.focus.trim() ? 'Besonderer Auftrag vom Menschen hinter der Kamera: ' + cfg.focus.trim() : ''
+      cfg.extra.trim() ? 'Zusätzliche Anweisung vom Menschen hinter der Kamera: ' + cfg.extra.trim() : ''
     ].filter(Boolean).join('\n');
   }
-  function userPrompt(gapSec) {
+  function userPrompt(gap) {
     const lines = [];
     if (history.length) {
       lines.push('Deine bisherigen Beobachtungen (älteste zuerst):');
       history.forEach((h, i) => lines.push((i + 1) + '. SEHE: ' + h.see + ' DENKE: ' + h.think));
       lines.push('');
-      lines.push('Neues Bild, etwa ' + gapSec + ' Sekunden nach dem letzten.');
+      lines.push('Neues Bild, etwa ' + gap + ' Sekunden nach dem letzten.');
     } else {
       lines.push('Erstes Bild. Du öffnest gerade die Augen.');
     }
     return lines.join('\n');
+  }
+  function productSystem() {
+    const lang = LANG[cfg.lang] || 'Deutsch';
+    return [
+      'Du bist ein Produkt-Scout und schaust live durch die Kamera eines Handys. Der Mensch richtet ein Fadenkreuz auf einen Gegenstand und will wissen, was genau das für ein Produkt ist. Alle paar Sekunden bekommst du ein neues Standbild.',
+      'Deine Aufgabe: Bestimme Produktart, Marke und Modell des anvisierten Gegenstands so genau, wie es das Bild hergibt. Stütze dich nur auf Sichtbares, also Logo, Schriftzug, Typenschild, Aufdruck. Rate keine Marke und keine Modellnummer. Eine typische Bauform reicht nicht für eine Marke. Was nicht lesbar oder nicht eindeutig ist, heißt „unbekannt“.',
+      'Antworte immer in genau diesem Format, ohne Markdown:',
+      'OBJEKTE: <gültiges JSON mit genau einem Eintrag für den anvisierten Gegenstand: [{"n":"Name","x1":0,"y1":0,"x2":0,"y2":0}], oder [] wenn am Fadenkreuz kein Produkt liegt>',
+      'ART: <Produktart, zum Beispiel Wasserkocher, oder unbekannt>',
+      'MARKE: <Marke oder unbekannt>',
+      'MODELL: <Modellbezeichnung oder unbekannt>',
+      'BITTE: <ein kurzer Satz an den Menschen, was er tun soll, damit du Marke und Modell lesen kannst: näher rangehen, den Gegenstand drehen, Unterseite oder Typenschild zeigen, ruhiger halten, für mehr Licht sorgen. Sind Marke und Modell gesichert, schreib nur –>',
+      'DENKE: <ein bis zwei Sätze: woran du das Produkt erkennst und was dir noch fehlt>',
+      'Die Marker bleiben immer genau so stehen. Den Inhalt schreibst du auf ' + lang + '.',
+      BOX_RULES
+    ].join('\n');
+  }
+  function aimPoint() {
+    const f = frameRect(); if (!f) return { x: 500, y: 500 };
+    const r = $('aim').getBoundingClientRect();
+    let sx = r.left + r.width / 2; const sy = r.top + r.height / 2;
+    if (cfg.facing === 'user') sx = f.W - sx;
+    return { x: clamp(Math.round((sx - f.ox) / f.w * 1000)), y: clamp(Math.round((sy - f.oy) / f.h * 1000)) };
+  }
+  function productUser() {
+    const a = aimPoint(), lines = [];
+    lines.push('Das Fadenkreuz liegt bei x=' + a.x + ', y=' + a.y + ' (Skala 0 bis 1000).');
+    if (prod.hint) lines.push('Der Mensch hat im Bild den Gegenstand „' + prod.hint + '“ angetippt. Nimm diesen Gegenstand, auch wenn er nicht genau unter dem Fadenkreuz liegt.');
+    if (prod.art) lines.push('Bisher von dir gesichert: Art=' + prod.art + ', Marke=' + (prod.marke || 'unbekannt') + ', Modell=' + (prod.modell || 'unbekannt') + '. Behalte gesicherte Angaben bei, solange es derselbe Gegenstand ist. Ist jetzt ein anderer Gegenstand anvisiert, fang neu an.');
+    lines.push(prod.n ? 'Neues Bild.' : 'Erstes Bild.');
+    return lines.join('\n');
+  }
+  function researchSystem() {
+    const lang = LANG[cfg.lang] || 'Deutsch';
+    return [
+      'Du recherchierst kurz zu einem Produkt, das jemand gerade mit der Handykamera anvisiert. Wenn dir eine Websuche zur Verfügung steht, nutze sie mit höchstens zwei Suchanfragen. Ohne Websuche antwortest du aus deinem Wissen und kennzeichnest Unsicheres.',
+      'Antworte auf ' + lang + ', ohne Markdown und ohne Einleitung, in genau diesen Zeilen, jede in einer eigenen Zeile:',
+      'PRODUKT: <genaue Bezeichnung, so weit gesichert>',
+      'KURZ: <ein Satz, was es ist und wofür es gedacht ist>',
+      'DATEN: <die drei bis fünf wichtigsten technischen Daten, mit · getrennt>',
+      'PREIS: <ungefährer Neupreis in Deutschland in Euro, oder unbekannt>',
+      'URTEIL: <ein bis zwei Sätze: Stärken, Schwächen, bekannte Probleme oder Rückrufe laut Tests und Bewertungen>',
+      'HINWEIS: <was an der Zuordnung unsicher ist, zum Beispiel ein nicht gesichertes Modell; sonst –>',
+      'Erfinde keine Modellnummern, Preise oder Testergebnisse. Was du nicht belegen kannst, heißt unbekannt.'
+    ].join('\n');
   }
 
   /* ---------- Modell-Aufrufe (Streaming) ---------- */
@@ -371,38 +600,66 @@
     err.status = res.status;
     throw err;
   }
+  /* opts: { maxTokens, search, onSearch(query), onSource({url,title}), onNoSearch() } */
   const PROVIDERS = {
-    async gemini(b64, sys, user, onText, signal) {
+    async gemini(b64, sys, user, onText, signal, opts) {
+      opts = opts || {};
       const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelOf()) + ':streamGenerateContent?alt=sse';
-      const call = () => {
-        const generationConfig = { maxOutputTokens: 2048 };
-        if (geminiLowThinking) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
-        return fetch(url, { method: 'POST', signal, headers: { 'content-type': 'application/json', 'x-goog-api-key': keyOf() },
-          body: JSON.stringify({ systemInstruction: { parts: [{ text: sys }] },
-            contents: [{ role: 'user', parts: [{ inlineData: { mimeType: 'image/jpeg', data: b64 } }, { text: user }] }], generationConfig }) });
+      const call = (search, low) => {
+        const generationConfig = { maxOutputTokens: (opts.maxTokens || 600) + 2000 };
+        if (low) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+        const body = { systemInstruction: { parts: [{ text: sys }] },
+          contents: [{ role: 'user', parts: [{ inlineData: { mimeType: 'image/jpeg', data: b64 } }, { text: user }] }], generationConfig };
+        if (search) body.tools = [{ google_search: {} }];
+        return fetch(url, { method: 'POST', signal, headers: { 'content-type': 'application/json', 'x-goog-api-key': keyOf() }, body: JSON.stringify(body) });
       };
-      let res = await call();
-      if (res.status === 400 && geminiLowThinking) { geminiLowThinking = false; res = await call(); }
+      let res = await call(!!opts.search, geminiLowThinking);
+      if (res.status === 400 && geminiLowThinking) { geminiLowThinking = false; res = await call(!!opts.search, false); }
+      if (res.status === 400 && opts.search) { if (opts.onNoSearch) opts.onNoSearch(); res = await call(false, false); }
       if (!res.ok) await fail(res);
       await sse(res, j => {
-        const parts = (((j.candidates || [])[0] || {}).content || {}).parts || [];
-        for (const p of parts) if (p.text && !p.thought) onText(p.text);
+        const cand = (j.candidates || [])[0] || {};
+        for (const p of ((cand.content || {}).parts || [])) if (p.text && !p.thought) onText(p.text);
+        const chunks = (cand.groundingMetadata || {}).groundingChunks || [];
+        if (opts.onSource) for (const c of chunks) if (c.web && c.web.uri) opts.onSource({ url: c.web.uri, title: c.web.title || '' });
       });
     },
-    demo(b64, sys, user, onText, signal) { return PROVIDERS.anthropic(b64, sys, user, onText, signal, true); },
-    async anthropic(b64, sys, user, onText, signal, viaProxy) {
-      const res = await fetch(viaProxy ? PROXY_URL : 'https://api.anthropic.com/v1/messages', { method: 'POST', signal,
-        headers: viaProxy ? { 'content-type': 'application/json', 'anthropic-version': '2023-06-01' }
-          : { 'content-type': 'application/json', 'x-api-key': keyOf(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: modelOf(), max_tokens: 400, stream: true, system: sys,
-          messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } }, { type: 'text', text: user }] }] }) });
+    demo(b64, sys, user, onText, signal, opts) { return PROVIDERS.anthropic(b64, sys, user, onText, signal, opts, true); },
+    async anthropic(b64, sys, user, onText, signal, opts, viaProxy) {
+      opts = opts || {};
+      const call = search => {
+        const body = { model: modelOf(), max_tokens: opts.maxTokens || 600, stream: true, system: sys,
+          messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } }, { type: 'text', text: user }] }] };
+        if (search) body.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }];
+        return fetch(viaProxy ? PROXY_URL : 'https://api.anthropic.com/v1/messages', { method: 'POST', signal,
+          headers: viaProxy ? { 'content-type': 'application/json', 'anthropic-version': '2023-06-01' }
+            : { 'content-type': 'application/json', 'x-api-key': keyOf(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+          body: JSON.stringify(body) });
+      };
+      let res = await call(!!opts.search);
+      if (res.status === 400 && opts.search) { if (opts.onNoSearch) opts.onNoSearch(); res = await call(false); }
       if (!res.ok) await fail(res);
+      const queries = {}, found = []; let cited = 0;
       await sse(res, j => {
-        if (j.type === 'content_block_delta' && j.delta && j.delta.type === 'text_delta') onText(j.delta.text);
-        if (j.type === 'error') throw new Error((j.error && j.error.message) || 'Fehler im Stream');
+        if (j.type === 'content_block_start' && j.content_block) {
+          const cb = j.content_block;
+          if (cb.type === 'server_tool_use') { queries[j.index] = ''; if (opts.onSearch) opts.onSearch(''); }
+          if (cb.type === 'web_search_tool_result' && Array.isArray(cb.content)) for (const r of cb.content) if (r && r.url) found.push({ url: r.url, title: r.title || '' });
+        } else if (j.type === 'content_block_delta' && j.delta) {
+          const d = j.delta;
+          if (d.type === 'text_delta') onText(d.text);
+          else if (d.type === 'input_json_delta' && j.index in queries) queries[j.index] += d.partial_json || '';
+          else if (d.type === 'citations_delta' && d.citation && d.citation.url) { cited++; if (opts.onSource) opts.onSource({ url: d.citation.url, title: d.citation.title || '' }); }
+        } else if (j.type === 'content_block_stop' && j.index in queries) {
+          try { const q = JSON.parse(queries[j.index] || '{}').query; if (q && opts.onSearch) opts.onSearch(q); } catch (e) {}
+          delete queries[j.index];
+        } else if (j.type === 'error') throw new Error((j.error && j.error.message) || 'Fehler im Stream');
       });
+      if (!cited && opts.onSource) found.slice(0, 3).forEach(opts.onSource);
     },
-    async openai(b64, sys, user, onText, signal) {
+    async openai(b64, sys, user, onText, signal, opts) {
+      opts = opts || {};
+      if (opts.search && opts.onNoSearch) opts.onNoSearch();
       const headers = { 'content-type': 'application/json' };
       if (keyOf()) headers.authorization = 'Bearer ' + keyOf();
       const res = await fetch(cfg.base.trim().replace(/\/+$/, '') + '/chat/completions', { method: 'POST', signal, headers,
@@ -417,56 +674,193 @@
     }
   };
 
-  /* ---------- Ein Gedanke ---------- */
+  /* ---------- Ein Gedanke (Umschau) oder ein Produktblick ---------- */
   async function think(shot) {
+    const myGen = gen, product = isProduct();
     const t0 = performance.now();
     const gap = lastRun ? Math.max(1, Math.round((Date.now() - lastRun) / 1000)) : 0;
-    setState('thinking', 'Denkt …');
-    const el = addEntry('live');
-    let raw = '', first = 0, queued = false;
+    setState('thinking', product ? 'Prüft das Produkt …' : 'Denkt …');
+    const el = product ? null : addEntry('live');
+    let raw = '', first = 0, queued = false, boxed = false;
+    const draw = () => { if (myGen !== gen) return; if (product) paintProduct(raw); else paint(el, raw); };
     abort = new AbortController();
     try {
-      await PROVIDERS[cfg.provider](shot.b64(), systemPrompt(), userPrompt(gap), chunk => {
+      await PROVIDERS[cfg.provider](shot.b64(), product ? productSystem() : systemPrompt(), product ? productUser() : userPrompt(gap), chunk => {
         if (!first) first = performance.now() - t0;
         raw += chunk;
-        if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; paint(el, raw); }); }
-      }, abort.signal);
+        if (!boxed && myGen === gen && (cfg.boxes || product)) {
+          const b = parseBoxes(raw, false);
+          if (b) { boxed = true; if (product && b[0]) b[0].target = true; setBoxes(product ? b.slice(0, 1) : b, shot.tinyNow); }
+        }
+        if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; draw(); }); }
+      }, abort.signal, { maxTokens: 600 });
     } catch (e) {
-      if (raw.trim()) paint(el, raw); else el.remove();
+      if (el) { if (raw.trim() && myGen === gen) paint(el, raw); else el.remove(); }
       throw e;
     } finally {
-      el.classList.remove('live');
+      if (el) el.classList.remove('live');
+    }
+    if (myGen !== gen) { if (el) el.remove(); return; }   // Modus oder Fokus wurde währenddessen gewechselt
+    if (!boxed) setBoxes([], shot.tinyNow);
+    frames++; lastRun = Date.now(); lastTiny = shot.tinyNow;
+    const secs = 'ERSTES WORT NACH ' + (first / 1000).toFixed(1) + ' S · FERTIG NACH ' + ((performance.now() - t0) / 1000).toFixed(1) + ' S';
+    if (product) {
+      const p = paintProduct(raw);
+      if (!p.art && !p.denke && !p.bitte) throw new Error('Das Modell hat nichts geantwortet. Prüfe den Modellnamen in den Einstellungen.');
+      $('pMeta').textContent = 'BILD ' + frames + ' · ' + secs;
+      applyProduct(p);
+      return;
     }
     const p = paint(el, raw);
     if (!p.see && !p.think) { el.remove(); throw new Error('Das Modell hat nichts geantwortet. Prüfe den Modellnamen in den Einstellungen.'); }
-    frames++;
-    lastRun = Date.now(); lastTiny = shot.tinyNow;
     history.push({ see: p.see || '–', think: p.think || '–' });
     if (history.length > HISTORY) history.shift();
-    el.querySelector('.meta').textContent = 'BILD ' + frames + ' · ERSTES WORT NACH ' + (first / 1000).toFixed(1) + ' S · FERTIG NACH ' + ((performance.now() - t0) / 1000).toFixed(1) + ' S';
+    el.querySelector('.meta').textContent = 'BILD ' + frames + ' · ' + secs;
     say(p.think);
+  }
+
+  /* ---------- Produkt-Modus ---------- */
+  const unknown = v => !v || /^(unbekannt|unknown|bilinmiyor|n\/a|keine?|none|[–\-?])\.?$/i.test(v.trim());
+  const norm = v => v.trim().toLowerCase();
+  function field(text, key) { const m = text.match(new RegExp('^[ \\t]*' + key + '\\s*:[ \\t]*(.*)$', 'mi')); return m ? m[1].trim() : ''; }
+  function parseProduct(raw) {
+    const text = stripObjects(raw);
+    const d = text.match(/(?:^|\n)\s*(?:DENKE|THINK|DÜŞÜN)\s*:/i);
+    return { art: field(text, 'ART'), marke: field(text, 'MARKE'), modell: field(text, 'MODELL'), bitte: field(text, 'BITTE'), denke: d ? text.slice(d.index + d[0].length).trim() : '' };
+  }
+  function chip(label, value) {
+    const c = document.createElement('span'); c.className = 'chip' + (unknown(value) ? ' unknown' : '');
+    const b = document.createElement('b'); b.textContent = label; c.appendChild(b);
+    c.appendChild(document.createTextNode(unknown(value) ? 'unbekannt' : value));
+    return c;
+  }
+  function renderHead(art, marke, modell) {
+    const h = $('pHead'); h.innerHTML = '';
+    if (!art && !marke && !modell) return;
+    h.appendChild(chip('Art', art)); h.appendChild(chip('Marke', marke)); h.appendChild(chip('Modell', modell));
+  }
+  /* Zeigt den laufenden Stream: gesicherte Angaben bleiben stehen, bis das Bild Besseres liefert */
+  function paintProduct(raw) {
+    const p = parseProduct(raw);
+    const pick = (now, kept) => unknown(now) ? kept : now;
+    renderHead(pick(p.art, prod.art), pick(p.marke, prod.marke), pick(p.modell, prod.modell));
+    const ask = $('pAsk'); ask.classList.remove('err');
+    if (p.bitte) ask.textContent = unknown(p.bitte) ? 'Marke und Modell sind gesichert.' : p.bitte;
+    $('pThink').textContent = p.denke;
+    return p;
+  }
+  function resetProduct(hint) {
+    prod = { art: '', marke: '', modell: '', n: 0, brandFrames: 0, doneKey: '', hint: hint || '' };
+    forceResearch = false;
+    renderHead('', '', '');
+    $('pAsk').classList.remove('err');
+    $('pAsk').textContent = hint ? 'Ziel: ' + hint + '. Halte die Kamera darauf.' : 'Halte das Fadenkreuz auf ein Produkt.';
+    $('pThink').textContent = ''; $('pMeta').textContent = '';
+    $('pRes').classList.add('hide'); $('pRes').innerHTML = '';
+    $('pGo').disabled = true;
+  }
+  const prodKey = () => [prod.art, prod.marke, prod.modell].map(norm).join('|');
+  function applyProduct(p) {
+    if (!unknown(p.art)) {
+      if (prod.art && norm(p.art) !== norm(prod.art)) {   // anderer Gegenstand im Visier
+        resetProduct(); paintProduct('ART: ' + p.art + '\nMARKE: ' + p.marke + '\nMODELL: ' + p.modell + '\nBITTE: ' + p.bitte + '\nDENKE: ' + p.denke);
+      }
+      prod.art = p.art;
+    }
+    if (!unknown(p.marke)) prod.marke = p.marke;
+    if (!unknown(p.modell)) prod.modell = p.modell;
+    prod.n++; if (prod.marke) prod.brandFrames++;
+    renderHead(prod.art, prod.marke, prod.modell);
+    $('pGo').disabled = !prod.art || researching;
+    if (!unknown(p.bitte)) say(p.bitte);
+    /* Automatisch recherchieren, sobald die Marke steht: sofort mit Modell, sonst nach drei Bildern ohne */
+    if (prod.marke && prodKey() !== prod.doneKey && (prod.modell || prod.brandFrames >= 3)) forceResearch = true;
+  }
+  const R_ROWS = [['PRODUKT', 'Produkt'], ['KURZ', 'Kurz'], ['DATEN', 'Daten'], ['PREIS', 'Preis'], ['URTEIL', 'Urteil'], ['HINWEIS', 'Hinweis']];
+  function paintResearch(raw, status, sources) {
+    const box = $('pRes'); box.classList.remove('hide'); box.innerHTML = '';
+    const st = document.createElement('div'); st.className = 'st'; st.textContent = status; box.appendChild(st);
+    const text = raw.replace(/\*\*/g, '');
+    for (const [key, label] of R_ROWS) {
+      const v = field(text, key); if (unknown(v)) continue;
+      const r = document.createElement('div'); r.className = 'r';
+      const b = document.createElement('b'); b.textContent = label.toUpperCase();
+      const s = document.createElement('span'); s.textContent = v;
+      r.appendChild(b); r.appendChild(s); box.appendChild(r);
+    }
+    if (sources.length) {
+      const src = document.createElement('div'); src.className = 'src'; src.appendChild(document.createTextNode('Quellen:'));
+      for (const s of sources) {
+        const a = document.createElement('a'); a.href = s.url; a.target = '_blank'; a.rel = 'noopener';
+        try { a.textContent = new URL(s.url).hostname.replace(/^www\./, ''); } catch (e) { a.textContent = 'Link'; }
+        if (s.title) a.title = s.title;
+        src.appendChild(a);
+      }
+      box.appendChild(src);
+    }
+  }
+  async function research(shot) {
+    const myGen = gen, key = prodKey();
+    prod.doneKey = key; researching = true; $('pGo').disabled = true;
+    setState('thinking', 'Recherchiert …');
+    let raw = '', status = 'RECHERCHE LÄUFT …', noSearch = false, searched = false;
+    const sources = [];
+    const draw = () => { if (myGen === gen) paintResearch(raw, status, sources); };
+    draw();
+    const known = 'Vom Bild abgelesen: Art=' + prod.art + ', Marke=' + (prod.marke || 'unbekannt') + ', Modell=' + (prod.modell || 'unbekannt') + '. Das angehängte Bild zeigt den Gegenstand.';
+    abort = new AbortController();
+    try {
+      await PROVIDERS[cfg.provider](shot.b64(), researchSystem(), known, chunk => { raw += chunk; draw(); }, abort.signal, {
+        maxTokens: 900, search: true,
+        onSearch: q => { searched = true; status = q ? 'SUCHT IM WEB: ' + q : 'SUCHT IM WEB …'; draw(); },
+        onSource: s => { if (sources.length < 4 && /^https?:/i.test(s.url) && !sources.some(x => x.url === s.url)) sources.push(s); },
+        onNoSearch: () => { noSearch = true; }
+      });
+    } catch (e) {
+      prod.doneKey = '';   // erneuter Versuch bleibt möglich
+      throw e;
+    } finally {
+      researching = false;
+      if (myGen === gen) $('pGo').disabled = !prod.art;
+    }
+    if (myGen !== gen) return;
+    status = searched || sources.length ? 'RECHERCHE · MIT WEBSUCHE' : (noSearch ? 'RECHERCHE · OHNE WEBSUCHE, AUS MODELLWISSEN' : 'RECHERCHE · AUS MODELLWISSEN');
+    if (!R_ROWS.some(([k]) => !unknown(field(raw.replace(/\*\*/g, ''), k)))) status = 'RECHERCHE OHNE VERWERTBARES ERGEBNIS';
+    draw();
+    lastRun = Date.now();
+    say(field(raw, 'KURZ'));
+  }
+  function pickObject(name) {
+    if (!isProduct()) setMode('product', name);
+    else { restartThinking(); resetProduct(name); }
   }
 
   /* ---------- Schleife ---------- */
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  /* Pause zwischen zwei Bildern; ein Wechsel von Modus, Fokus oder Ziel beendet sie sofort */
+  let poke = null;
+  const nap = ms => new Promise(r => { const t = setTimeout(done, ms); function done() { clearTimeout(t); poke = null; r(); } poke = done; });
   async function loop() {
     let backoff = 0;
     while (running) {
       if (document.hidden) { await sleep(400); continue; }
       const shot = snapshot();
       if (!shot) { await sleep(200); continue; }
+      const wantResearch = isProduct() && forceResearch && prod.art;
       const idle = Date.now() - lastRun;
-      if (cfg.changeOnly && lastRun && shot.diff < 0.035 && idle < IDLE_MAX) {
-        setState('watching', 'Schaut · Bild unverändert');
+      if (!wantResearch && cfg.changeOnly && lastRun && shot.diff < 0.035 && idle < (isProduct() ? IDLE_MAX_PRODUCT : IDLE_MAX)) {
+        setState('watching', isProduct() ? 'Zielt · Bild unverändert' : 'Schaut · Bild unverändert');
         await sleep(350); continue;
       }
       const started = Date.now();
       try {
-        await think(shot);
+        if (wantResearch) { forceResearch = false; await research(shot); }
+        else await think(shot);
         backoff = 0;
-        if (running) setState('watching', 'Schaut');
+        if (running) setState('watching', isProduct() ? 'Zielt' : 'Schaut');
       } catch (e) {
-        if (!running || (e && e.name === 'AbortError')) break;
+        if (!running) break;
+        if (e && e.name === 'AbortError') continue;   // Modus oder Fokus gewechselt
         const s = e.status;
         if (isDemo() && s) {
           showError(s === 429 ? LIMIT_MSG : 'Der Demo-Zugang ist gerade nicht verfügbar (' + (e.message || s) + '). Versuch es später noch einmal oder trag in den Einstellungen einen eigenen Schlüssel ein.');
@@ -483,8 +877,9 @@
         await sleep(backoff * 1000);
         continue;
       }
+      if (isProduct() && forceResearch) continue;   // Recherche direkt anschließen
       const rest = gapSec() * 1000 - (Date.now() - started);
-      if (rest > 0) await sleep(rest);
+      if (rest > 0) await nap(rest);
     }
   }
 
@@ -495,7 +890,7 @@
     try { setState('idle', 'Kamera startet …'); await openCam(); }
     catch (e) { showError(camError(e)); setState('error', 'Keine Kamera'); return; }
     running = true; document.body.classList.add('running'); $('goText').textContent = 'Stopp';
-    setState('watching', 'Schaut');
+    setState('watching', isProduct() ? 'Zielt' : 'Schaut');
     try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {}
     loop();
   }
@@ -505,6 +900,7 @@
     if (wake) { wake.release().catch(() => {}); wake = null; }
     if (window.speechSynthesis) speechSynthesis.cancel();
     closeCam();
+    boxData = []; layoutBoxes();
     setState('idle', 'Pausiert');
   }
   document.addEventListener('visibilitychange', async () => {
@@ -524,6 +920,39 @@
     u.rate = 1.05;
     speechSynthesis.speak(u);
   }
+
+  /* ---------- Modus und Fokus ---------- */
+  function restartThinking() { gen++; if (abort) abort.abort(); boxData = []; layoutBoxes(); lastRun = 0; if (poke) poke(); }
+  function setMode(mode, hint) {
+    cfg.mode = mode === 'product' ? 'product' : 'observe'; persist();
+    document.body.dataset.mode = cfg.mode;
+    [...$('mode').children].forEach(b => b.classList.toggle('on', b.dataset.v === cfg.mode));
+    restartThinking();
+    resetProduct(hint);
+    if (running) setState('watching', isProduct() ? 'Zielt' : 'Schaut');
+  }
+  function renderFocus() {
+    const cur = cfg.focus.trim();
+    $('focusText').textContent = cur || 'Alles';
+    const box = $('focusChips'); box.innerHTML = '';
+    [''].concat(PRESETS).forEach(p => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = p || 'Alles';
+      b.classList.toggle('on', cur === p); b.onclick = () => setFocus(p); box.appendChild(b);
+    });
+    $('focusOwn').value = PRESETS.includes(cur) ? '' : cur;
+  }
+  function setFocus(v) {
+    cfg.focus = String(v || '').trim().slice(0, 160); persist();
+    history = []; restartThinking(); renderFocus();
+    $('focusPop').classList.remove('open');
+  }
+  $('focusBtn').onclick = e => { e.stopPropagation(); $('focusPop').classList.toggle('open'); };
+  $('focusForm').onsubmit = e => { e.preventDefault(); setFocus($('focusOwn').value); $('focusOwn').blur(); };
+  $('focusPop').onclick = e => e.stopPropagation();
+  document.addEventListener('click', () => $('focusPop').classList.remove('open'));
+  [...$('mode').children].forEach(b => { b.onclick = () => { if (b.dataset.v !== cfg.mode) setMode(b.dataset.v); }; });
+  $('pNew').onclick = () => { restartThinking(); resetProduct(); };
+  $('pGo').onclick = () => { if (prod.art && running) { prod.doneKey = ''; forceResearch = true; $('pGo').disabled = true; if (poke) poke(); } };
 
   /* ---------- Einstellungen ---------- */
   let draft = null;
@@ -555,7 +984,8 @@
     fillProvider();
     seg('interval', draft.interval, v => draft.interval = Number(v));
     seg('lang', draft.lang, v => draft.lang = v);
-    $('focus').value = draft.focus;
+    $('extra').value = draft.extra;
+    $('boxesOn').checked = draft.boxes;
     $('changeOnly').checked = draft.changeOnly;
     $('speak').checked = draft.speak;
     $('sheet').classList.add('open');
@@ -564,11 +994,11 @@
   $('provider').onchange = () => { readProvider(); draft.provider = $('provider').value; fillProvider(); };
   $('save').onclick = () => {
     readProvider();
-    draft.focus = $('focus').value; draft.changeOnly = $('changeOnly').checked; draft.speak = $('speak').checked;
-    const changedBrain = draft.provider !== cfg.provider || draft.lang !== cfg.lang || draft.focus !== cfg.focus;
-    draft.facing = cfg.facing;
+    draft.extra = $('extra').value; draft.boxes = $('boxesOn').checked; draft.changeOnly = $('changeOnly').checked; draft.speak = $('speak').checked;
+    const changedBrain = draft.provider !== cfg.provider || draft.lang !== cfg.lang || draft.extra !== cfg.extra || draft.boxes !== cfg.boxes;
+    draft.facing = cfg.facing; draft.mode = cfg.mode; draft.focus = cfg.focus;
     cfg = draft; persist();
-    if (changedBrain) history = [];
+    if (changedBrain) { history = []; restartThinking(); }
     geminiLowThinking = true;
     closeSheet();
     if (!running && configured() && document.body.dataset.state === 'error') setState('idle', 'Bereit');
@@ -577,6 +1007,7 @@
     try { localStorage.removeItem(STORE); } catch (e) {}
     cfg = Object.assign({}, defaults, { keys: {}, models: {} }); history = [];
     if (running) stop();
+    setMode(cfg.mode); renderFocus();
     openSheet();
   };
   $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeSheet(); });
@@ -584,9 +1015,11 @@
   $('go').onclick = () => running ? stop() : start();
   $('flip').onclick = async () => {
     cfg.facing = cfg.facing === 'environment' ? 'user' : 'environment'; persist();
+    boxData = []; layoutBoxes();
     if (running) { try { await openCam(); } catch (e) { showError(camError(e)); } }
   };
 
+  setMode(cfg.mode); renderFocus();
   if (!configured()) openSheet();
 })();
 </script>
