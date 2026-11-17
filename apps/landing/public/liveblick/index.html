@@ -336,7 +336,7 @@
       <option value="openai">Eigener Endpunkt (OpenAI-kompatibel)</option>
     </select>
 
-    <p class="note hide" id="demoNote">Läuft über den Zugang des Seitenbetreibers mit Claude Haiku. Begrenzt auf rund 300 Anfragen pro Stunde. Der Takt liegt bei mindestens 6 Sekunden; nach einem Schwenk schaue ich schon nach 3 Sekunden neu hin. Für mehr wähle oben einen Anbieter mit eigenem Schlüssel.</p>
+    <p class="note hide" id="demoNote">Läuft über den Zugang des Seitenbetreibers mit Claude Haiku, ohne Begrenzung. Im Takt „Live“ geht das nächste Bild raus, sobald die Antwort auf das letzte da ist.</p>
 
     <div id="baseWrap" class="hide">
       <label for="base">Basis-URL</label>
@@ -353,9 +353,9 @@
     <input id="model" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
     </div>
 
-    <label>Takt: neues Bild alle</label>
+    <label>Takt: neues Bild</label>
     <div class="seg" id="interval">
-      <button data-v="2">2 s</button><button data-v="4">4 s</button><button data-v="7">7 s</button><button data-v="12">12 s</button><button data-v="20">20 s</button>
+      <button data-v="0">Live</button><button data-v="2">2 s</button><button data-v="4">4 s</button><button data-v="7">7 s</button><button data-v="12">12 s</button><button data-v="20">20 s</button>
     </div>
 
     <label>Sprache der Gedanken</label>
@@ -393,8 +393,7 @@
   const $ = id => document.getElementById(id);
   const STORE = 'liveblick.v2';
   const PROXY_URL = 'https://bkaanp-proxy.batuhan-kaan-piskin.workers.dev/v1/messages';
-  const DEMO_MODEL = 'claude-haiku-5-5', DEMO_MIN_GAP = 6, DEMO_MOVE_GAP = 3, MOVE_GAP = 1.5;
-  const LIMIT_MSG = 'Das Demo-Kontingent ist aufgebraucht (rund 300 Anfragen pro Stunde). In etwa einer Stunde geht es weiter, oder du trägst in den Einstellungen einen eigenen Schlüssel ein.';
+  const DEMO_MODEL = 'claude-haiku-5-5', MOVE_GAP = 1;
   const DEFAULT_MODEL = { demo: DEMO_MODEL, gemini: 'gemini-flash-latest', anthropic: 'claude-haiku-5-5', openai: '' };
   const KEY_NOTE = {
     demo: '',
@@ -404,16 +403,16 @@
   };
   const LANG = { de: 'Deutsch', en: 'English', tr: 'Türkçe' };
   const PRESETS = ['Elektronische Geräte', 'Texte und Schilder', 'Lebensmittel', 'Pflanzen', 'Möbel', 'Werkzeug'];
-  const IDLE_MAX = 20000, IDLE_MAX_PRODUCT = 12000, HISTORY = 6, MAX_ENTRIES = 40, FRAME_TOKENS = 800, MAX_BOXES = 10;
+  const IDLE_MAX = 20000, IDLE_MAX_PRODUCT = 12000, IDLE_MAX_LIVE = 3000, HISTORY = 6, MAX_ENTRIES = 40, FRAME_TOKENS = 800, MAX_BOXES = 10;
   const MODES = ['observe', 'product', 'room'];
   const WATCH = { observe: 'Schaut', product: 'Zielt', room: 'Erfasst' };
 
-  const defaults = { provider: 'demo', keys: {}, models: {}, base: '', interval: 7, lang: 'de', focus: '', extra: '', mode: 'observe', boxes: true, thoughts: false, changeOnly: true, speak: false, facing: 'environment' };
+  const defaults = { provider: 'demo', keys: {}, models: {}, base: '', interval: 0, lang: 'de', live: 1, focus: '', extra: '', mode: 'observe', boxes: true, thoughts: false, changeOnly: true, speak: false, facing: 'environment' };
   let cfg = load();
   function load() {
     const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
     const own = read(STORE);
-    if (own) return Object.assign({}, defaults, own);
+    if (own) { if (!own.live) { own.interval = 0; own.live = 1; } return Object.assign({}, defaults, own); }   // gespeicherter Takt stammt noch aus der Zeit mit Demo-Limit: einmalig auf Live stellen
     const old = read('liveblick.v1') || {};   // frühere Version: Schlüssel behalten, aber im Demo-Zugang starten
     return Object.assign({}, defaults, { keys: Object.assign({}, old.keys), models: Object.assign({}, old.models), base: old.base || '' });
   }
@@ -424,7 +423,8 @@
   const isRoom = () => cfg.mode === 'room';
   const modelOf = () => isDemo() ? DEMO_MODEL : (cfg.models[cfg.provider] || DEFAULT_MODEL[cfg.provider] || '').trim();
   const configured = () => isDemo() ? true : cfg.provider === 'openai' ? !!(cfg.base.trim() && modelOf()) : !!keyOf();
-  const gapSec = () => isDemo() ? Math.max(DEMO_MIN_GAP, cfg.interval) : cfg.interval;
+  const gapSec = () => cfg.interval;   // 0 = Live: nächstes Bild, sobald die Antwort da ist
+  const isLive = () => cfg.interval < 1;
   const clamp = v => Math.max(0, Math.min(1000, v));
 
   const cam = $('cam'), feed = $('feed'), grab = $('grab'), tiny = $('tiny'), boxesEl = $('boxes');
@@ -1081,7 +1081,7 @@
        ruhigen Moment, nach gut einer Sekunde Warten aber auch mitten im Schwenk. Sonst steht man sekundenlang vor einem neuen Ding ohne
        Rahmen, oder ein angeschnittener Rahmen bleibt halb. */
     if (poke && lastShotF && (angle(lastShotF, [pose.R[2], pose.R[5], pose.R[8]]) > 6 || Math.abs(pose.z / lastShotZ - 1) > 0.15)) {
-      const waited = Date.now() - lastAsk - (isDemo() ? DEMO_MOVE_GAP : MOVE_GAP) * 1000;
+      const waited = Date.now() - lastAsk - MOVE_GAP * 1000;
       if (waited > 0 && (trk.still > 5 || waited > 1200)) poke();
     }
   })();
@@ -1624,9 +1624,9 @@
       const wantResearch = isProduct() && forceResearch && prod.art;
       const idle = Date.now() - lastRun;
       const turned = lastShotF ? angle(lastShotF, [shot.pose.R[2], shot.pose.R[5], shot.pose.R[8]]) > 5 : true;
-      if (!wantResearch && cfg.changeOnly && lastRun && !turned && shot.diff < 0.035 && idle < (isProduct() ? IDLE_MAX_PRODUCT : IDLE_MAX)) {
+      if (!wantResearch && cfg.changeOnly && lastRun && !turned && shot.diff < (isLive() ? 0.02 : 0.035) && idle < (isLive() ? IDLE_MAX_LIVE : isProduct() ? IDLE_MAX_PRODUCT : IDLE_MAX)) {
         setState('watching', WATCH[cfg.mode] + ' · Bild unverändert');
-        await sleep(350); continue;
+        await sleep(isLive() ? 120 : 350); continue;
       }
       const started = Date.now();
       lastAsk = started; lastShotF = [shot.pose.R[2], shot.pose.R[5], shot.pose.R[8]]; lastShotZ = shot.pose.z;
@@ -1639,15 +1639,15 @@
         if (!alive()) break;
         if (e && e.name === 'AbortError') continue;   // Modus oder Fokus gewechselt
         const s = e.status;
-        if (isDemo() && s) {
-          showError(s === 429 ? LIMIT_MSG : 'Der Demo-Zugang ist gerade nicht verfügbar (' + (e.message || s) + '). Versuch es später noch einmal oder trag in den Einstellungen einen eigenen Schlüssel ein.');
-          stop(); setState('error', s === 429 ? 'Demo-Limit erreicht' : 'Demo nicht verfügbar'); return;
+        if (isDemo() && s && s !== 429 && s < 500) {   // ein Limit oder eine Störung beim Anbieter geht vorüber: unten kurz warten und weitermachen
+          showError('Der Demo-Zugang ist gerade nicht verfügbar (' + (e.message || s) + '). Versuch es später noch einmal oder trag in den Einstellungen einen eigenen Schlüssel ein.');
+          stop(); setState('error', 'Demo nicht verfügbar'); return;
         }
         if (s === 401 || s === 403 || (s === 400 && /api.?key/i.test(e.message))) {
           showError('Der Schlüssel wurde abgelehnt: ' + e.message); stop(); setState('error', 'Schlüssel prüfen'); openSheet(); return;
         }
         if (s === 404) { showError('Modell nicht gefunden: ' + e.message); stop(); setState('error', 'Modell prüfen'); openSheet(); return; }
-        backoff = Math.min(30, backoff ? backoff * 2 : 4);
+        backoff = Math.min(30, backoff ? backoff * 2 : 2);
         const why = s === 429 ? 'Limit des Anbieters erreicht' : (e instanceof TypeError ? 'Keine Verbindung zum Anbieter' : (e.message || 'Unbekannter Fehler'));
         showError(why + '. Neuer Versuch in ' + backoff + ' s.');
         setState('error', 'Warte ' + backoff + ' s');

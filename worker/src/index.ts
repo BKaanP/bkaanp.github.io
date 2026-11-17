@@ -7,23 +7,6 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ]
 
-const RATE_LIMIT = 300
-const WINDOW_MS = 3_600_000
-
-const requestCounts = new Map<string, { count: number; resetAt: number }>()
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const entry = requestCounts.get(ip)
-  if (!entry || now > entry.resetAt) {
-    requestCounts.set(ip, { count: 1, resetAt: now + WINDOW_MS })
-    return true
-  }
-  if (entry.count >= RATE_LIMIT) return false
-  entry.count++
-  return true
-}
-
 function corsHeaders(origin: string | null, requestedHeaders?: string | null) {
   const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
   return {
@@ -54,14 +37,6 @@ export default {
 
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405, headers })
-    }
-
-    const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
-    if (!checkRateLimit(ip)) {
-      return new Response(
-        JSON.stringify({ error: { message: 'Rate limit exceeded. Please try again later.' } }),
-        { status: 429, headers: { ...headers, 'Content-Type': 'application/json' } },
-      )
     }
 
     const body = await request.text()
