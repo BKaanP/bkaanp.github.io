@@ -40,11 +40,13 @@
   .icon { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; padding: 0; }
   .icon svg { width: 19px; height: 19px; stroke: var(--ink); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .icon:active, .pill:active { transform: scale(.95); }
+  #torch[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
+  #torch[aria-pressed="true"] svg { stroke: #1a1205; }
 
   /* Kopfzeile */
   #top { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 8px;
     padding: calc(env(safe-area-inset-top) + 12px) 12px 10px; }
-  #status { display: flex; align-items: center; gap: 8px; min-width: 0; height: 40px; padding: 0 14px 0 12px; border-radius: 20px;
+  #status { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 0 4 auto; height: 40px; padding: 0 14px 0 12px; border-radius: 20px;
     font: 600 10.5px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--ink); }
   #status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: none; }
@@ -53,7 +55,7 @@
   body[data-state="error"] #dot { background: var(--err); }
   @keyframes pulse { 50% { opacity: .25; transform: scale(.7); } }
   .pill { height: 40px; border-radius: 20px; color: var(--ink); font: 600 13px/1 var(--sans); padding: 0 14px; display: flex; align-items: center; gap: 7px; min-width: 0; }
-  #focusBtn { margin-left: auto; flex: 0 1 auto; max-width: 46%; }
+  #focusBtn { margin-left: auto; flex: 0 1 auto; max-width: 46%; min-width: 104px; }
   #focusBtn b { font: 600 10px/1 var(--mono); letter-spacing: .09em; color: var(--accent); text-transform: uppercase; flex: none; }
   #focusBtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #focusPop { position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 60px); z-index: 5; display: none; background: var(--panel);
@@ -164,7 +166,7 @@
   #pAsk { margin: 12px 0 0; font: 400 18px/1.38 var(--serif); text-wrap: pretty; }
   #pHead:empty + #pAsk { margin-top: 0; }
   #pAsk.err { font: 500 14px/1.45 var(--sans); color: var(--err); }
-  #pThink { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--dim); }
+  #pThink { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--dim); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   #pThink:empty, #pMeta:empty { display: none; }
   #pMeta { font: 500 10px/1 var(--mono); color: var(--faint); margin-top: 8px; letter-spacing: .06em; }
   #pRes { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 11px; }
@@ -281,6 +283,9 @@
   <div id="top">
     <div id="status" class="glass"><i id="dot"></i><span id="statusText">Bereit</span></div>
     <button class="pill glass" id="focusBtn"><b>Fokus</b><span id="focusText">Alles</span></button>
+    <button class="icon glass hide" id="torch" aria-label="Taschenlampe" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M8 3h8v3.5L14.5 9v10a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2V9L8 6.5z"/><path d="M8 6.5h8M12 12v2.5"/></svg>
+    </button>
     <button class="icon glass" id="gear" aria-label="Einstellungen">
       <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
     </button>
@@ -403,7 +408,7 @@
   };
   const LANG = { de: 'Deutsch', en: 'English', tr: 'Türkçe' };
   const PRESETS = ['Elektronische Geräte', 'Texte und Schilder', 'Lebensmittel', 'Pflanzen', 'Möbel', 'Werkzeug'];
-  const IDLE_MAX = 20000, IDLE_MAX_PRODUCT = 12000, IDLE_MAX_LIVE = 3000, HISTORY = 6, MAX_ENTRIES = 40, FRAME_TOKENS = 800, MAX_BOXES = 10;
+  const PRODUCT_CROP = 0.72, IDLE_MAX = 20000, IDLE_MAX_PRODUCT = 12000, IDLE_MAX_LIVE = 3000, HISTORY = 6, MAX_ENTRIES = 40, FRAME_TOKENS = 800, MAX_BOXES = 10;
   const MODES = ['observe', 'product', 'room'];
   const WATCH = { observe: 'Schaut', product: 'Zielt', room: 'Erfasst' };
 
@@ -496,14 +501,27 @@
     closeCam();
     stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: { facingMode: { ideal: cfg.facing }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      video: { facingMode: { ideal: cfg.facing }, width: { ideal: 1920 }, height: { ideal: 1080 } }   // Full HD: Aufdrucke bleiben lesbar, ohne dass man zu nah heran muss
     });
+    /* Was die Kamera kann, meldet der Browser selbst: Dauer-Autofokus einschalten, Taschenlampe anbieten. Fehlt etwas, bleibt es einfach weg. */
+    const vt = stream.getVideoTracks()[0];
+    let caps = {}; try { caps = vt && vt.getCapabilities ? vt.getCapabilities() : {}; } catch (e) {}
+    if (caps.focusMode && caps.focusMode.includes('continuous')) vt.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+    torchOn = false; $('torch').classList.toggle('hide', !caps.torch); $('torch').setAttribute('aria-pressed', 'false');
     cam.srcObject = stream;
     cam.classList.toggle('mirror', cfg.facing === 'user');
     await cam.play().catch(() => {});
     lastTiny = null; trk.key = null; trk.sens = null; trk.vel = null;
   }
+  let torchOn = false;
+  async function setTorch(on) {
+    const vt = stream && stream.getVideoTracks()[0]; if (!vt) return;
+    try { await vt.applyConstraints({ advanced: [{ torch: on }] }); torchOn = on; }
+    catch (e) { torchOn = false; $('torch').classList.add('hide'); }   // meldet der Browser die Lampe nur, ohne sie zu schalten: Knopf wieder weg
+    $('torch').setAttribute('aria-pressed', String(torchOn));
+  }
   function closeCam() {
+    $('torch').classList.add('hide');
     if (stream) stream.getTracks().forEach(t => t.stop());
     stream = null; cam.srcObject = null;
   }
@@ -529,16 +547,20 @@
     if (!w || !h) return null;
     track(); trk.last = performance.now();   // Lage und Aufnahme sollen zum selben Videobild gehören
     const longSide = isProduct() ? 1280 : 768;   // Typenschilder brauchen mehr Auflösung
-    const s = Math.min(1, longSide / Math.max(w, h));
+    /* Im Produkt-Modus geht nur der Ausschnitt um das Fadenkreuz raus, dafür in voller Kameraauflösung: so wird Kleingedrucktes lesbar,
+       ohne dass man näher herangehen muss, als die Kamera scharfstellen kann. cx, cy, cw, ch: der Ausschnitt als Anteil des Kamerabilds. */
+    let cx = 0, cy = 0, cw = 1, ch = 1;
+    if (isProduct()) { const a = aimPoint(); cw = ch = PRODUCT_CROP; cx = Math.max(0, Math.min(1 - cw, a.x / 1000 - cw / 2)); cy = Math.max(0, Math.min(1 - ch, a.y / 1000 - ch / 2)); }
+    const sw = w * cw, sh = h * ch, s = Math.min(1, longSide / Math.max(sw, sh));
     /* Das Bild wird mittig auf ein Quadrat gesetzt. Das Modell normiert Koordinaten mal auf Breite und Höhe getrennt,
        mal einheitlich auf die lange Seite; im Quadrat ergeben beide Lesarten dasselbe. */
-    const fw = Math.round(w * s), fh = Math.round(h * s), S = Math.max(fw, fh), px = Math.round((S - fw) / 2), py = Math.round((S - fh) / 2);
+    const fw = Math.round(sw * s), fh = Math.round(sh * s), S = Math.max(fw, fh), px = Math.round((S - fw) / 2), py = Math.round((S - fh) / 2);
     grab.width = S; grab.height = S;
-    const c2 = grab.getContext('2d'); c2.fillStyle = '#000'; c2.fillRect(0, 0, S, S); c2.drawImage(cam, px, py, fw, fh);
+    const c2 = grab.getContext('2d'); c2.fillStyle = '#000'; c2.fillRect(0, 0, S, S); c2.drawImage(cam, w * cx, h * cy, sw, sh, px, py, fw, fh);
     const g = tinyNow();
     const b64 = grab.toDataURL('image/jpeg', isProduct() ? 0.74 : 0.62).split(',')[1];
     /* Die Lage der Kamera im Moment der Aufnahme: die Antwort kommt Sekunden später und wird von hier aus in den Raum gerechnet */
-    return { tinyNow: g, diff: lastTiny ? tinyDiff(g, lastTiny) : 1, b64: () => b64, pose: { R: pose.R.slice(), z: pose.z }, vw: w, vh: h, sq: { S, px, py, fw, fh } };
+    return { tinyNow: g, diff: lastTiny ? tinyDiff(g, lastTiny) : 1, b64: () => b64, pose: { R: pose.R.slice(), z: pose.z }, vw: w, vh: h, sq: { S, px, py, fw, fh, cx, cy, cw, ch } };
   }
 
   /* ---------- Lage der Kamera ----------
@@ -1086,12 +1108,12 @@
     }
   })();
   window.addEventListener('resize', () => { safe.at = 0; renderBoxes(); });
-  /* Rahmen aus dem Quadrat zurück ins eigentliche Kamerabild rechnen */
+  /* Rahmen aus dem Quadrat zurück ins eigentliche Kamerabild rechnen (über den gesendeten Ausschnitt) */
   function fromSquare(list, sq) {
     const out = [];
     for (const b of list) {
-      const x1 = clamp((b.x1 / 1000 * sq.S - sq.px) / sq.fw * 1000), x2 = clamp((b.x2 / 1000 * sq.S - sq.px) / sq.fw * 1000);
-      const y1 = clamp((b.y1 / 1000 * sq.S - sq.py) / sq.fh * 1000), y2 = clamp((b.y2 / 1000 * sq.S - sq.py) / sq.fh * 1000);
+      const fx = v => clamp((sq.cx + (v / 1000 * sq.S - sq.px) / sq.fw * sq.cw) * 1000), fy = v => clamp((sq.cy + (v / 1000 * sq.S - sq.py) / sq.fh * sq.ch) * 1000);
+      const x1 = fx(b.x1), x2 = fx(b.x2), y1 = fy(b.y1), y2 = fy(b.y2);
       if (x2 - x1 < 8 || y2 - y1 < 8) continue;
       /* cut: an welchen Bildrändern der Rahmen anstößt (1 links, 2 rechts, 4 oben, 8 unten). Dort ist das Ding vermutlich abgeschnitten. */
       out.push(Object.assign({}, b, { x1, y1, x2, y2, cut: (x1 <= 15 ? 1 : 0) | (x2 >= 985 ? 2 : 0) | (y1 <= 15 ? 4 : 0) | (y2 >= 985 ? 8 : 0) }));
@@ -1175,14 +1197,16 @@
     const lang = LANG[cfg.lang] || 'Deutsch';
     return [
       'Du bist ein Produkt-Scout und schaust live durch die Kamera eines Handys. Der Mensch richtet ein Fadenkreuz auf einen Gegenstand und will wissen, was genau das für ein Produkt ist. Alle paar Sekunden bekommst du ein neues Standbild.',
-      'Deine Aufgabe: Bestimme Produktart, Marke und Modell des anvisierten Gegenstands so genau, wie es das Bild hergibt. Stütze dich nur auf Sichtbares, also Logo, Schriftzug, Typenschild, Aufdruck. Rate keine Marke und keine Modellnummer. Eine typische Bauform reicht nicht für eine Marke. Was nicht lesbar oder nicht eindeutig ist, heißt „unbekannt“.',
+      'Deine Aufgabe: Bestimme Produktart, Marke und Modell des anvisierten Gegenstands so genau, wie es das Bild hergibt. Am sichersten ist, was du lesen kannst: Logo, Schriftzug, Typenschild, Aufdruck.',
+      'Viele Produkte tragen außen keinen Schriftzug, sind aber an ihrer Gestaltung unverwechselbar, zum Beispiel Geräte von Apple (AirPods-Ladecase, iPhone, MacBook, Apple Watch). Erkennst du ein Produkt eindeutig an Form, Proportionen und Details, dann nenne Marke und Modell und häng ein Fragezeichen an, zum Beispiel „Apple?“ und „AirPods Pro?“. Das Fragezeichen heißt: an der Bauform erkannt, nicht gelesen. Ohne Fragezeichen schreibst du nur, was du wirklich lesen kannst. Passt die Bauform zu vielen Herstellern, bleibt es bei „unbekannt“. Erfinde keine Modellnummern.',
       'Antworte immer in genau diesem Format, ohne Markdown:',
       'OBJEKTE: <gültiges JSON mit genau einem Eintrag für den anvisierten Gegenstand als Ganzes: [{"n":"Name","x1":0,"y1":0,"x2":0,"y2":0}], oder [] wenn am Fadenkreuz kein Produkt liegt>',
       'ART: <Produktart, zum Beispiel Wasserkocher, oder unbekannt>',
-      'MARKE: <Marke oder unbekannt>',
-      'MODELL: <Modellbezeichnung oder unbekannt>',
-      'BITTE: <ein kurzer Satz an den Menschen, was er tun soll, damit du Marke und Modell lesen kannst: näher rangehen, den Gegenstand drehen, Unterseite oder Typenschild zeigen, ruhiger halten, für mehr Licht sorgen. Sind Marke und Modell gesichert, schreib nur –>',
-      'DENKE: <ein bis zwei Sätze: woran du das Produkt erkennst und was dir noch fehlt>',
+      'MARKE: <Marke, Marke mit Fragezeichen, oder unbekannt>',
+      'MODELL: <Modellbezeichnung, Modell mit Fragezeichen, oder unbekannt>',
+      'BITTE: <ein kurzer Satz an den Menschen, was er tun soll, damit du Marke und Modell lesen oder bestätigen kannst: den Gegenstand drehen, Unterseite, Innenseite des Deckels oder Typenschild zeigen, ruhiger halten, für mehr Licht sorgen. Sind Marke und Modell gesichert, schreib nur –>',
+      'DENKE: <ein kurzer Satz: woran du das Produkt erkennst oder was dir noch fehlt>',
+      'Wichtig zu BITTE: Eine Handykamera stellt näher als etwa 15 Zentimeter nicht mehr scharf. Du bekommst bereits einen vergrößerten Ausschnitt. Bitte deshalb nie darum, näher heranzukommen. Ist das Bild unscharf oder füllt der Gegenstand es schon fast aus, bitte stattdessen um etwas mehr Abstand; ist es dunkel oder verrauscht, um mehr Licht oder die Taschenlampe.',
       'Die Marker bleiben immer genau so stehen. Den Inhalt schreibst du auf ' + lang + '.',
       BOX_RULES
     ].join('\n');
@@ -1210,7 +1234,7 @@
   }
   function productUser(sq) {
     const a = aimPoint(), lines = [];
-    const ax = Math.round((sq.px + a.x / 1000 * sq.fw) / sq.S * 1000), ay = Math.round((sq.py + a.y / 1000 * sq.fh) / sq.S * 1000);
+    const ax = Math.round((sq.px + (a.x / 1000 - sq.cx) / sq.cw * sq.fw) / sq.S * 1000), ay = Math.round((sq.py + (a.y / 1000 - sq.cy) / sq.ch * sq.fh) / sq.S * 1000);
     lines.push('Das Fadenkreuz liegt bei x=' + ax + ', y=' + ay + ' (Skala 0 bis 1000).');
     if (prod.hint) lines.push('Der Mensch hat im Bild den Gegenstand „' + prod.hint + '“ angetippt. Nimm diesen Gegenstand, auch wenn er nicht genau unter dem Fadenkreuz liegt.');
     if (prod.art) lines.push('Bisher von dir gesichert: Art=' + prod.art + ', Marke=' + (prod.marke || 'unbekannt') + ', Modell=' + (prod.modell || 'unbekannt') + '. Behalte gesicherte Angaben bei, solange es derselbe Gegenstand ist. Ist jetzt ein anderer Gegenstand anvisiert, fang neu an.');
@@ -1228,6 +1252,7 @@
       'PREIS: <ungefährer Neupreis in Deutschland in Euro, oder unbekannt>',
       'URTEIL: <ein bis zwei Sätze: Stärken, Schwächen, bekannte Probleme oder Rückrufe laut Tests und Bewertungen>',
       'HINWEIS: <was an der Zuordnung unsicher ist, zum Beispiel ein nicht gesichertes Modell; sonst –>',
+      'Ein Fragezeichen hinter Marke oder Modell heißt: nur an der Bauform erkannt, nicht abgelesen. Prüfe am Bild, ob das stimmt, lass das Fragezeichen in PRODUKT weg, wenn du dir sicher bist, und nenne die verbleibende Unsicherheit unter HINWEIS.',
       'Erfinde keine Modellnummern, Preise oder Testergebnisse. Was du nicht belegen kannst, heißt unbekannt.'
     ].join('\n');
   }
@@ -1421,7 +1446,7 @@
   /* Zeigt den laufenden Stream: gesicherte Angaben bleiben stehen, bis das Bild Besseres liefert */
   function paintProduct(raw) {
     const p = parseProduct(raw);
-    const pick = (now, kept) => unknown(now) ? kept : now;
+    const pick = better;
     renderHead(pick(p.art, prod.art), pick(p.marke, prod.marke), pick(p.modell, prod.modell));
     const ask = $('pAsk'); ask.classList.remove('err');
     if (p.bitte) ask.textContent = unknown(p.bitte) ? 'Marke und Modell sind gesichert.' : p.bitte;
@@ -1438,7 +1463,10 @@
     $('pRes').classList.add('hide'); $('pRes').innerHTML = '';
     $('pGo').disabled = true;
   }
-  const prodKey = () => [prod.art, prod.marke, prod.modell].map(norm).join('|');
+  const sure = v => String(v || '').replace(/\s*\?+\s*$/, '');
+  const prodKey = () => [prod.art, prod.marke, prod.modell].map(v => norm(sure(v))).join('|');
+  /* Gelesenes schlägt Vermutetes: „Apple“ wird nicht wieder zu „Apple?“ */
+  const better = (now, kept) => unknown(now) || (/\?\s*$/.test(now) && kept && !/\?\s*$/.test(kept) && norm(sure(now)) === norm(kept)) ? kept : now;
   function applyProduct(p) {
     if (!unknown(p.art)) {
       if (prod.art && norm(p.art) !== norm(prod.art)) {   // anderer Gegenstand im Visier
@@ -1446,8 +1474,7 @@
       }
       prod.art = p.art;
     }
-    if (!unknown(p.marke)) prod.marke = p.marke;
-    if (!unknown(p.modell)) prod.modell = p.modell;
+    prod.marke = better(p.marke, prod.marke); prod.modell = better(p.modell, prod.modell);
     prod.n++; if (prod.marke) prod.brandFrames++;
     renderHead(prod.art, prod.marke, prod.modell);
     $('pGo').disabled = !prod.art || researching;
@@ -1821,6 +1848,7 @@
   $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeSheet(); });
   $('gear').onclick = openSheet;
   $('go').onclick = () => running ? stop() : start();
+  $('torch').onclick = () => setTorch(!torchOn);
   $('flip').onclick = async () => {
     cfg.facing = cfg.facing === 'environment' ? 'user' : 'environment'; persist();
     clearBoxes(true); resetPose();
