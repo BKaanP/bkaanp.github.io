@@ -104,10 +104,10 @@
   /* Wegweiser am Rand zu gemerkten Dingen außerhalb des Bilds */
   .ptr { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px 0 9px; border-radius: 14px; max-width: 128px;
     background: rgba(11, 12, 14, .74); border: 1px solid var(--line); color: var(--ink); font: 600 11.5px/1 var(--sans); white-space: nowrap; pointer-events: auto; will-change: transform; animation: boxIn .28s ease-out; }
-  .ptr i { width: 0; height: 0; flex: none; border-left: 8px solid hsl(var(--h) 90% 64%); border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+  .ptr i { width: 13px; height: 10px; flex: none; background: hsl(var(--h) 90% 64%); -webkit-clip-path: polygon(0 0, 100% 50%, 0 100%, 26% 50%); clip-path: polygon(0 0, 100% 50%, 0 100%, 26% 50%); }
   .ptr span { overflow: hidden; text-overflow: ellipsis; }
   .ptr.seek { background: var(--accent); border-color: var(--accent); color: #1a1205; height: 34px; border-radius: 17px; font-size: 13px; z-index: 1; }
-  .ptr.seek i { border-left-color: #1a1205; }
+  .ptr.seek i { background: #1a1205; }
 
   /* Fadenkreuz im Produkt-Modus */
   #aim { position: absolute; left: 50%; top: 30%; width: 68px; height: 68px; margin: -34px 0 0 -34px; pointer-events: none; display: none; }
@@ -336,7 +336,7 @@
       <option value="openai">Eigener Endpunkt (OpenAI-kompatibel)</option>
     </select>
 
-    <p class="note hide" id="demoNote">Läuft über den Zugang des Seitenbetreibers mit Claude Haiku. Begrenzt auf rund 300 Anfragen pro Stunde und mindestens 6 Sekunden Takt. Für mehr wähle oben einen Anbieter mit eigenem Schlüssel.</p>
+    <p class="note hide" id="demoNote">Läuft über den Zugang des Seitenbetreibers mit Claude Haiku. Begrenzt auf rund 300 Anfragen pro Stunde. Der Takt liegt bei mindestens 6 Sekunden; nach einem Schwenk schaue ich schon nach 3 Sekunden neu hin. Für mehr wähle oben einen Anbieter mit eigenem Schlüssel.</p>
 
     <div id="baseWrap" class="hide">
       <label for="base">Basis-URL</label>
@@ -393,7 +393,7 @@
   const $ = id => document.getElementById(id);
   const STORE = 'liveblick.v2';
   const PROXY_URL = 'https://bkaanp-proxy.batuhan-kaan-piskin.workers.dev/v1/messages';
-  const DEMO_MODEL = 'claude-haiku-5-5', DEMO_MIN_GAP = 6;
+  const DEMO_MODEL = 'claude-haiku-5-5', DEMO_MIN_GAP = 6, DEMO_MOVE_GAP = 3, MOVE_GAP = 1.5;
   const LIMIT_MSG = 'Das Demo-Kontingent ist aufgebraucht (rund 300 Anfragen pro Stunde). In etwa einer Stunde geht es weiter, oder du trägst in den Einstellungen einen eigenen Schlüssel ein.';
   const DEFAULT_MODEL = { demo: DEMO_MODEL, gemini: 'gemini-flash-latest', anthropic: 'claude-haiku-5-5', openai: '' };
   const KEY_NOTE = {
@@ -888,29 +888,43 @@
     return { c: dirOf((x1 + x2) / 2, (y1 + y2) / 2, sp), hw: (x2 - x1) / 2 / sp.z, hh: (y2 - y1) / 2 / sp.z };
   }
   const sizeDeg = t => Math.atan((t.hw + t.hh) / 2) / D2R;
-  /* Welche Meldung gehört zu welchem gemerkten Ding? Gleicher Name in der Nähe, oder anderer Name an praktisch derselben Stelle. */
-  function matchUp(dets, pool) {
+  /* Welche Meldung gehört zu welchem gemerkten Ding? Gleicher Name in der Nähe oder ineinander liegend (ein angeschnittener Monitor und
+     derselbe Monitor ganz haben verschiedene Mitten), oder anderer Name an praktisch derselben Stelle. */
+  function matchUp(dets, pool, sp) {
     const cand = [];
-    dets.forEach((d, i) => pool.forEach((t, j) => {
+    dets.forEach((d, i) => { const pd = projN(d.c, sp); pool.forEach((t, j) => {
       const a = angle(d.c, t.c), rd = sizeDeg(d), rt = sizeDeg(t);
-      if (d.key === t.key) { if (a < Math.max(6, 0.7 * (rd + rt))) cand.push([a, i, j]); }
-      else if (a < 0.5 * Math.min(rd, rt) && rd / rt > 0.6 && rd / rt < 1.67) cand.push([a + 8, i, j]);
-    }));
+      if (d.key === t.key) {
+        const pt = pd && projN(t.c, sp), ex = pt ? Math.abs(pt.x - pd.x) / sp.z : 9, ey = pt ? Math.abs(pt.y - pd.y) / sp.z : 9;
+        if (a < Math.max(6, 0.7 * (rd + rt)) || (ex < d.hw && ey < d.hh) || (ex < t.hw && ey < t.hh)) cand.push([a, i, j]);
+      } else if (a < 0.5 * Math.min(rd, rt) && rd / rt > 0.6 && rd / rt < 1.67) cand.push([a + 8, i, j]);
+    }); });
     cand.sort((x, y) => x[0] - y[0]);
     const byDet = new Map(), used = new Set();
     for (const [, i, j] of cand) if (!byDet.has(i) && !used.has(j)) { byDet.set(i, pool[j]); used.add(j); }
     return byDet;
   }
-  function absorb(t, d, now) {
-    const far = angle(t.c, d.c) > sizeDeg(d), k = far ? 1 : 0.7;   // Rahmen des Modells wackeln von Bild zu Bild: glätten, solange es dieselbe Stelle ist
-    t.c = unit(mix(1 - k, t.c, k, d.c)); t.hw += (d.hw - t.hw) * k; t.hh += (d.hh - t.hh) * k;
+  function absorb(t, d, now, sp) {
+    const cut = d.b.cut || 0, pt = projN(t.c, sp), pd = projN(d.c, sp);
+    if (cut && !t.cut && pt && pd && t.hw * t.hh > 0.9 * d.hw * d.hh) {
+      /* Die Meldung zeigt nur einen Ausschnitt (das Ding ragt aus dem Bild), gemerkt ist es ganz: Größe behalten und an den Kanten
+         ausrichten, die im Bild lagen. Sonst schrumpft der Rahmen jedes Mal, wenn das Ding halb aus dem Bild rutscht. */
+      const tw = t.hw * sp.z, th = t.hh * sp.z, dw = d.hw * sp.z, dh = d.hh * sp.z;
+      const dx = (cut & 3) === 3 ? 0 : cut & 1 ? pd.x + dw - pt.x - tw : cut & 2 ? pd.x - dw - pt.x + tw : pd.x - pt.x;
+      const dy = (cut & 12) === 12 ? 0 : cut & 4 ? pd.y + dh - pt.y - th : cut & 8 ? pd.y - dh - pt.y + th : pd.y - pt.y;
+      t.c = unit(mix(0.3, t.c, 0.7, dirOf(pt.x + dx, pt.y + dy, sp)));
+    } else {
+      /* Rahmen des Modells wackeln von Bild zu Bild: glätten, solange es dieselbe Stelle ist. War bisher nur ein Ausschnitt gemerkt, gilt die neue Meldung ganz. */
+      const k = angle(t.c, d.c) > sizeDeg(d) || (t.cut && !cut) ? 1 : 0.7;
+      t.c = unit(mix(1 - k, t.c, k, d.c)); t.hw += (d.hw - t.hw) * k; t.hh += (d.hh - t.hh) * k; t.cut = cut;
+    }
     t.names[d.b.n] = (t.names[d.b.n] || 0) + 1;
     let top = t.n; for (const n in t.names) if (t.names[n] > (t.names[top] || 0)) top = n;   // der häufigste Name gewinnt, damit das Etikett nicht flackert
     t.n = top; t.key = thingKey(top);
     if (d.b.m) t.m = t.m ? (t.m * Math.min(t.seen, 4) + d.b.m) / (Math.min(t.seen, 4) + 1) : d.b.m;
     t.seen++; t.miss = 0; t.at = now; t.ans = answers;
   }
-  const fresh = (d, now) => ({ id: nextId++, n: d.b.n, key: d.key, names: { [d.b.n]: 1 }, c: d.c, hw: d.hw, hh: d.hh, dc: d.c, dhw: d.hw, dhh: d.hh, m: d.b.m || null, seen: 1, miss: 0, at: now, ans: answers, vis: false });
+  const fresh = (d, now) => ({ id: nextId++, n: d.b.n, key: d.key, names: { [d.b.n]: 1 }, c: d.c, hw: d.hw, hh: d.hh, dc: d.c, dhw: d.hw, dhh: d.hh, cut: d.b.cut || 0, m: d.b.m || null, seen: 1, miss: 0, at: now, ans: answers, vis: false });
   /* Nimmt die Rahmen einer Antwort auf. listed: das Modell hat wirklich eine Liste geliefert (dann zählt auch, was fehlt). */
   function ingest(list, shot, listed) {
     const sp = { R: shot.pose.R.slice(), z: shot.pose.z }, k = fov(shot.vw, shot.vh), now = Date.now();
@@ -919,7 +933,7 @@
     if (isProduct()) {
       const d = dets[0];
       if (!d) target = null;
-      else if (target && angle(target.c, d.c) < 2 * sizeDeg(d)) absorb(target, d, now);
+      else if (target && angle(target.c, d.c) < 2 * sizeDeg(d)) absorb(target, d, now, sp);
       else target = fresh(d, now);
       renderBoxes(); return;
     }
@@ -935,24 +949,24 @@
       if (best) turnBy(offset(best.d, best.t));
     }
     if (dets.length) relocate = false;
-    pairs = matchUp(dets, things);
+    pairs = matchUp(dets, things, sp);
     if (pairs.size) {
       const ws = []; let big = 0;
-      pairs.forEach((t, i) => { ws.push(offset(dets[i], t)); big = Math.max(big, sizeDeg(dets[i])); });
-      const mean = [0, 1, 2].map(k => ws.reduce((a, w) => a + w[k], 0) / ws.length), mag = Math.hypot(mean[0], mean[1], mean[2]) / D2R;
-      const agree = ws.every(w => Math.hypot(w[0] - mean[0], w[1] - mean[1], w[2] - mean[2]) / D2R < Math.max(2, 0.35 * mag));
+      pairs.forEach((t, i) => { if (dets[i].b.cut || t.cut) return; ws.push(offset(dets[i], t)); big = Math.max(big, sizeDeg(dets[i])); });   // angeschnittene Rahmen sagen nichts über Drift
+      const mean = [0, 1, 2].map(k => ws.reduce((a, w) => a + w[k], 0) / Math.max(1, ws.length)), mag = Math.hypot(mean[0], mean[1], mean[2]) / D2R;
+      const agree = ws.length > 0 && ws.every(w => Math.hypot(w[0] - mean[0], w[1] - mean[1], w[2] - mean[2]) / D2R < Math.max(2, 0.35 * mag));
       /* mehrere Dinge mit demselben Versatz sind eindeutig; bei einem einzelnen muss er deutlich über dem Wackeln der Rahmen liegen */
-      if (agree && mag > (ws.length > 1 ? 3 : Math.max(6, 0.5 * big))) { turnBy(mean); pairs = matchUp(dets, things); }
+      if (agree && mag > (ws.length > 1 ? 3 : Math.max(6, 0.5 * big))) { turnBy(mean); pairs = matchUp(dets, things, sp); }
     } else if (dets.length && things.length) {
       /* Nichts liegt, wo es liegen müsste. Taucht ein bekannter Name in der Nähe auf, ist es dasselbe Ding. */
       let best = null;
-      for (const d of dets) for (const t of things) { const a = angle(d.c, t.c); if (d.key === t.key && a < 30 && (!best || t.seen > best.t.seen || (t.seen === best.t.seen && a < best.a))) best = { d, t, a }; }
-      if (best) { turnBy(offset(best.d, best.t)); pairs = matchUp(dets, things); }
+      for (const d of dets) for (const t of things) { const a = angle(d.c, t.c); if (d.key === t.key && !d.b.cut && !t.cut && a < 30 && (!best || t.seen > best.t.seen || (t.seen === best.t.seen && a < best.a))) best = { d, t, a }; }
+      if (best) { turnBy(offset(best.d, best.t)); pairs = matchUp(dets, things, sp); }
     }
     const hit = new Set(), born = new Set();
     dets.forEach((d, i) => {
       let t = pairs.get(i);
-      if (t) absorb(t, d, now); else { t = fresh(d, now); things.push(t); born.add(t.key); }
+      if (t) absorb(t, d, now, sp); else { t = fresh(d, now); things.push(t); born.add(t.key); }
       hit.add(t);
     });
     /* Was vollständig im aufgenommenen Bild hätte liegen müssen und wiederholt fehlt, fliegt raus; oft Gesehenes hält länger. Taucht derselbe Name gleichzeitig
@@ -1010,8 +1024,9 @@
             const lab = el.firstChild, name = lab.firstChild;
             if (name.textContent !== t.n) { name.textContent = t.n; el.dataset.n = t.n; el.style.setProperty('--h', hue(t.key)); }
             /* Etikett über dem Rahmen, wenn dort Platz ist, sonst innen; am Bildschirmrand bleibt es sichtbar */
-            const lx = Math.max(0, 8 - x1), ly = y1 - 28 > safe.top ? -28 : Math.max(6, safe.top - y1);
-            lab.style.transform = 'translate(' + lx.toFixed(0) + 'px,' + Math.min(ly, Math.max(6, 2 * hh - 30)).toFixed(0) + 'px)';
+            const lx = Math.max(0, 8 - x1), above = y1 - 28 > safe.top, small = 2 * hh < 64;
+            const ly = above ? -28 : small ? Math.max(2 * hh + 6, safe.top - y1 + 4) : Math.min(Math.max(6, safe.top - y1), Math.max(6, 2 * hh - 30));
+            lab.style.transform = 'translate(' + lx.toFixed(0) + 'px,' + ly.toFixed(0) + 'px)';
             keepB.add(t);
             if (isSeek && !seekHit) { seekHit = now; watching(); }
           }
@@ -1052,7 +1067,7 @@
   }
   function clearBoxes(all) { target = null; if (all) { things = []; roomFrames = 0; roomSee = ''; seek = null; seekHit = 0; } renderBoxes(); mapChanged(); }
   /* Mit jedem Videobild: Kamerabewegung schätzen, Rahmen nachführen, Karte auffrischen */
-  let lastMap = 0, lastShotF = null;
+  let lastMap = 0, lastShotF = null, lastShotZ = 1;
   (function everyFrame() {
     requestAnimationFrame(everyFrame);
     if (!running || !stream || document.hidden) return;
@@ -1062,8 +1077,13 @@
     track(); renderBoxes();
     trk.cost += (performance.now() - now - trk.cost) * 0.1;
     if (now - lastMap > 140) { lastMap = now; drawMaps(); }
-    /* Hat sich der Blick deutlich weiterbewegt und ist wieder ruhig, gleich neu hinschauen statt den Takt abzuwarten */
-    if (poke && lastShotF && trk.still > 8 && angle(lastShotF, [pose.R[2], pose.R[5], pose.R[8]]) > 14 && Date.now() - lastAsk > (isDemo() ? DEMO_MIN_GAP * 1000 : 1500)) poke();
+    /* Hat sich der Blick weiterbewegt (geschwenkt oder näher herangegangen), neu hinschauen statt den Takt abzuwarten: am liebsten in einem
+       ruhigen Moment, nach gut einer Sekunde Warten aber auch mitten im Schwenk. Sonst steht man sekundenlang vor einem neuen Ding ohne
+       Rahmen, oder ein angeschnittener Rahmen bleibt halb. */
+    if (poke && lastShotF && (angle(lastShotF, [pose.R[2], pose.R[5], pose.R[8]]) > 6 || Math.abs(pose.z / lastShotZ - 1) > 0.15)) {
+      const waited = Date.now() - lastAsk - (isDemo() ? DEMO_MOVE_GAP : MOVE_GAP) * 1000;
+      if (waited > 0 && (trk.still > 5 || waited > 1200)) poke();
+    }
   })();
   window.addEventListener('resize', () => { safe.at = 0; renderBoxes(); });
   /* Rahmen aus dem Quadrat zurück ins eigentliche Kamerabild rechnen */
@@ -1073,7 +1093,8 @@
       const x1 = clamp((b.x1 / 1000 * sq.S - sq.px) / sq.fw * 1000), x2 = clamp((b.x2 / 1000 * sq.S - sq.px) / sq.fw * 1000);
       const y1 = clamp((b.y1 / 1000 * sq.S - sq.py) / sq.fh * 1000), y2 = clamp((b.y2 / 1000 * sq.S - sq.py) / sq.fh * 1000);
       if (x2 - x1 < 8 || y2 - y1 < 8) continue;
-      out.push(Object.assign({}, b, { x1, y1, x2, y2 }));
+      /* cut: an welchen Bildrändern der Rahmen anstößt (1 links, 2 rechts, 4 oben, 8 unten). Dort ist das Ding vermutlich abgeschnitten. */
+      out.push(Object.assign({}, b, { x1, y1, x2, y2, cut: (x1 <= 15 ? 1 : 0) | (x2 >= 985 ? 2 : 0) | (y1 <= 15 ? 4 : 0) | (y2 >= 985 ? 8 : 0) }));
     }
     return out;
   }
@@ -1602,13 +1623,13 @@
       if (!shot) { await sleep(200); continue; }
       const wantResearch = isProduct() && forceResearch && prod.art;
       const idle = Date.now() - lastRun;
-      const turned = lastShotF ? angle(lastShotF, [shot.pose.R[2], shot.pose.R[5], shot.pose.R[8]]) > 8 : true;
+      const turned = lastShotF ? angle(lastShotF, [shot.pose.R[2], shot.pose.R[5], shot.pose.R[8]]) > 5 : true;
       if (!wantResearch && cfg.changeOnly && lastRun && !turned && shot.diff < 0.035 && idle < (isProduct() ? IDLE_MAX_PRODUCT : IDLE_MAX)) {
         setState('watching', WATCH[cfg.mode] + ' · Bild unverändert');
         await sleep(350); continue;
       }
       const started = Date.now();
-      lastAsk = started; lastShotF = [shot.pose.R[2], shot.pose.R[5], shot.pose.R[8]];
+      lastAsk = started; lastShotF = [shot.pose.R[2], shot.pose.R[5], shot.pose.R[8]]; lastShotZ = shot.pose.z;
       try {
         if (wantResearch) { forceResearch = false; await research(shot); }
         else await think(shot);
